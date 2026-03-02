@@ -2,23 +2,16 @@ name: Android CI/CD
 
 "on":
   push:
-    branches:
-      - main
-      - develop
-      - 'release/**'
+    branches: [main, develop]
   pull_request:
-    branches:
-      - main
-      - develop
+    branches: [main]
 
 jobs:
-
   build:
     name: Build & Test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -26,15 +19,11 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Generate Gradle Wrapper if missing
+      - name: Setup Gradle Wrapper
         run: |
-          if [ ! -f "gradlew" ]; then
-            sudo apt-get install -y gradle
-            gradle wrapper --gradle-version 8.4
-            chmod +x gradlew
-          else
-            chmod +x gradlew
-          fi
+          sudo apt-get install -y gradle
+          gradle wrapper --gradle-version 8.4 --distribution-type all
+          chmod +x gradlew
 
       - name: Cache Gradle
         uses: actions/cache@v4
@@ -42,8 +31,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-gradle-
+          key: ${{ runner.os }}-gradle-8.4
 
       - name: Run unit tests
         run: ./gradlew test --stacktrace
@@ -64,8 +52,7 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -73,15 +60,11 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Generate Gradle Wrapper if missing
+      - name: Setup Gradle Wrapper
         run: |
-          if [ ! -f "gradlew" ]; then
-            sudo apt-get install -y gradle
-            gradle wrapper --gradle-version 8.4
-            chmod +x gradlew
-          else
-            chmod +x gradlew
-          fi
+          sudo apt-get install -y gradle
+          gradle wrapper --gradle-version 8.4 --distribution-type all
+          chmod +x gradlew
 
       - name: Cache Gradle
         uses: actions/cache@v4
@@ -89,8 +72,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-gradle-
+          key: ${{ runner.os }}-gradle-8.4
 
       - name: Decode Keystore
         env:
