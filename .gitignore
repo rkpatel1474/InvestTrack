@@ -1,0 +1,12 @@
+*.jks
+*.keystore
+keystore_base64.txt
+*.zip
+.gradle/
+local.properties
+build/
+.idea/
+*.iml
+*.class
+.DS_Store
+app/build/
