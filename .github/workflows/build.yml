@@ -126,3 +126,11 @@ jobs:
           name: investtrack-release-aab-${{ github.run_number }}
           path: app/build/outputs/bundle/release/*.aab
           retention-days: 30
+
+      - name: Upload error log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-log-${{ github.run_number }}
+          path: app/build/reports/
+          retention-days: 3
