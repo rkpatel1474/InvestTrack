@@ -10,3 +10,5 @@ build/
 *.class
 .DS_Store
 app/build/
+*.jks
+keystore_base64.txt

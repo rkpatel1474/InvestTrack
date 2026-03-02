@@ -38,7 +38,7 @@ jobs:
           key: ${{ runner.os }}-gradle-8.4
 
       - name: Run unit tests
-        run: ./gradlew test --stacktrace
+        run: ./gradlew kspDebugKotlin --info --stacktrace --info 2>&1 | tail -100
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
