@@ -95,7 +95,7 @@ interface TransactionDao {
     suspend fun getTransactionsByMemberAndSecurity(memberId: Long, securityId: Long): List<Transaction>
 
     @Query("SELECT * FROM transactions ORDER BY transactionDate DESC LIMIT :limit")
-    fun getRecentTransactions(limit: Int = 10): Flow<List<Transaction>>
+    fun getRecentTransactions(limit: Int): Flow<List<Transaction>>
 
     @Query("SELECT DISTINCT securityId FROM transactions WHERE familyMemberId = :memberId")
     suspend fun getDistinctSecurityIds(memberId: Long): List<Long>
