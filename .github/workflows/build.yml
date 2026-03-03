@@ -22,6 +22,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.4'
+          cache-disabled: true
 
       - name: Generate Gradle Wrapper
         run: |
@@ -29,7 +30,7 @@ jobs:
           chmod +x gradlew
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleDebug --no-build-cache
 
       - name: Upload Debug APK
         if: success()
