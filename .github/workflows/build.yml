@@ -1,10 +1,10 @@
 name: Android CI/CD
 
-"on":
+on:
   push:
-    branches: [main, develop]
+    branches: [ main, develop ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   build:
@@ -28,16 +28,13 @@ jobs:
           gradle wrapper --gradle-version 8.4 --distribution-type all
           chmod +x gradlew
 
-      - name: Build and capture ALL output
-        run: ./gradlew kspDebugKotlin 2>&1 | tee /tmp/full.log || true
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace
 
-      - name: Show error lines
-        run: grep "^e:" /tmp/full.log || echo "No e: lines"
-
-      - name: Upload full raw log
-        if: always()
+      - name: Upload Debug APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: full-log-${{ github.run_number }}
-          path: /tmp/full.log
-          retention-days: 3
+          name: investtrack-debug-${{ github.run_number }}
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
