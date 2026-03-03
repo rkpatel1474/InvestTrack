@@ -29,22 +29,12 @@ jobs:
           gradle wrapper --gradle-version 8.4 --distribution-type all
           chmod +x gradlew
 
-      - name: Compile only (show full errors)
-        run: |
-          ./gradlew kspDebugKotlin 2>&1 | tee /tmp/build.log || true
-          echo "=== ALL E: LINES ==="
-          grep "^e:" /tmp/build.log || echo "No e: lines found"
-          echo "=== ERROR LINES ==="
-          grep -i "error" /tmp/build.log | grep -v "^w:" | grep -v "stacktrace" | head -50
-
       - name: Build Debug APK
-        run: ./gradlew assembleDebug 2>&1 | tee /tmp/apk.log
-        continue-on-error: true
+        run: ./gradlew assembleDebug
 
-      - name: Upload full logs
-        if: always()
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: build-logs-${{ github.run_number }}
-          path: /tmp/*.log
-          retention-days: 3
+          name: investtrack-debug-${{ github.run_number }}
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
