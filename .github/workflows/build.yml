@@ -8,7 +8,6 @@ name: Android CI/CD
 
 jobs:
   build:
-    name: Build & Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,15 +28,16 @@ jobs:
           gradle wrapper --gradle-version 8.4 --distribution-type all
           chmod +x gradlew
 
-      - name: Build with full debug output
-        run: |
-          ./gradlew kspDebugKotlin --debug 2>&1 | grep -E "^\[ERROR\]|error:|\.kt:[0-9]+.*error" | grep -v "^w:" | grep -v "Download" | grep -v "gradle" | head -60 | tee /tmp/errors.txt || true
-          cat /tmp/errors.txt
+      - name: Build and capture ALL output
+        run: ./gradlew kspDebugKotlin 2>&1 | tee /tmp/full.log || true
 
-      - name: Upload error log
+      - name: Show error lines
+        run: grep "^e:" /tmp/full.log || echo "No e: lines"
+
+      - name: Upload full raw log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: debug-errors-${{ github.run_number }}
-          path: /tmp/errors.txt
+          name: full-log-${{ github.run_number }}
+          path: /tmp/full.log
           retention-days: 3
