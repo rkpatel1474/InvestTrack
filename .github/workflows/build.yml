@@ -29,12 +29,15 @@ jobs:
           gradle wrapper --gradle-version 8.4 --distribution-type all
           chmod +x gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
+      - name: Build with full debug output
+        run: |
+          ./gradlew kspDebugKotlin --debug 2>&1 | grep -E "^\[ERROR\]|error:|\.kt:[0-9]+.*error" | grep -v "^w:" | grep -v "Download" | grep -v "gradle" | head -60 | tee /tmp/errors.txt || true
+          cat /tmp/errors.txt
 
-      - name: Upload Debug APK
+      - name: Upload error log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: investtrack-debug-${{ github.run_number }}
-          path: app/build/outputs/apk/debug/*.apk
-          retention-days: 7
+          name: debug-errors-${{ github.run_number }}
+          path: /tmp/errors.txt
+          retention-days: 3
