@@ -19,9 +19,11 @@ import com.investtrack.ui.loan.AddEditLoanScreen
 import com.investtrack.ui.loan.LoanDetailScreen
 import com.investtrack.ui.holdings.HoldingsScreen
 import com.investtrack.ui.holdings.HoldingDetailScreen
+import com.investtrack.ui.more.MoreScreen
 
 sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
+    object More : Screen("more")
     object FamilyList : Screen("family_list")
     object AddEditFamily : Screen("add_edit_family?memberId={memberId}") {
         fun createRoute(memberId: Long? = null) = if (memberId != null) "add_edit_family?memberId=$memberId" else "add_edit_family?memberId=-1"
@@ -59,6 +61,13 @@ fun InvestTrackNavHost(navController: NavHostController) {
                 onNavigateToTransactions = { navController.navigate(Screen.TransactionList.route) },
                 onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction.createRoute()) },
                 onNavigateToSecurity = { sid -> navController.navigate(Screen.HoldingDetail.createRoute(sid)) }
+            )
+        }
+        composable(Screen.More.route) {
+            MoreScreen(
+                onNavigateToFamily = { navController.navigate(Screen.FamilyList.route) },
+                onNavigateToSecurity = { navController.navigate(Screen.SecurityList.route) },
+                onNavigateToPriceUpdate = { navController.navigate(Screen.PriceUpdate.createRoute()) }
             )
         }
         composable(Screen.FamilyList.route) {
@@ -127,8 +136,11 @@ fun InvestTrackNavHost(navController: NavHostController) {
             Screen.LoanDetail.route,
             arguments = listOf(navArgument("loanId") { type = NavType.LongType })
         ) { backStack ->
-            LoanDetailScreen(loanId = backStack.arguments!!.getLong("loanId"), onBack = { navController.popBackStack() },
-                onEdit = { id -> navController.navigate(Screen.AddEditLoan.createRoute(id)) })
+            LoanDetailScreen(
+                loanId = backStack.arguments!!.getLong("loanId"),
+                onBack = { navController.popBackStack() },
+                onEdit = { id -> navController.navigate(Screen.AddEditLoan.createRoute(id)) }
+            )
         }
         composable(Screen.Holdings.route) {
             HoldingsScreen(

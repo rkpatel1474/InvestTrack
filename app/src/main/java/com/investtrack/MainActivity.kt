@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             InvestTrackTheme {
-                InvestTrackMainApp()
+                InvestTrackApp()
             }
         }
     }
@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InvestTrackMainApp() {
+fun InvestTrackApp() {
     val navController = rememberNavController()
 
     val bottomNavItems = listOf(
@@ -43,6 +43,7 @@ fun InvestTrackMainApp() {
         BottomNavItem("Holdings", Icons.Default.PieChart, Screen.Holdings.route),
         BottomNavItem("Transactions", Icons.Default.Receipt, Screen.TransactionList.route),
         BottomNavItem("Loans", Icons.Default.AccountBalance, Screen.LoanList.route),
+        BottomNavItem("More", Icons.Default.MoreHoriz, Screen.More.route),
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -73,13 +74,12 @@ fun InvestTrackMainApp() {
             }
         },
         floatingActionButton = {
-            if (currentDestination?.route == Screen.TransactionList.route) {
-                FloatingActionButton(
+            when (currentDestination?.route) {
+                Screen.TransactionList.route -> FloatingActionButton(
                     onClick = { navController.navigate(Screen.AddTransaction.createRoute()) },
                     containerColor = MaterialTheme.colorScheme.primary
                 ) { Icon(Icons.Default.Add, "Add Transaction") }
-            } else if (currentDestination?.route == Screen.LoanList.route) {
-                FloatingActionButton(
+                Screen.LoanList.route -> FloatingActionButton(
                     onClick = { navController.navigate(Screen.AddEditLoan.createRoute()) },
                     containerColor = MaterialTheme.colorScheme.primary
                 ) { Icon(Icons.Default.Add, "Add Loan") }
