@@ -25,7 +25,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -122,6 +122,7 @@ class LoanViewModel @Inject constructor(
     suspend fun getLoan(id: Long) = loanRepo.getLoanById(id)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoanListScreen(onAddLoan: () -> Unit, onLoanDetail: (Long) -> Unit, onBack: () -> Unit, vm: LoanViewModel = hiltViewModel()) {
     val loans by vm.allLoans.collectAsState()
@@ -157,6 +158,7 @@ fun LoanListScreen(onAddLoan: () -> Unit, onLoanDetail: (Long) -> Unit, onBack: 
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoanCard(summary: LoanSummary, onClick: () -> Unit, onDelete: () -> Unit) {
     var showDelete by remember { mutableStateOf(false) }
@@ -179,7 +181,7 @@ fun LoanCard(summary: LoanSummary, onClick: () -> Unit, onDelete: () -> Unit) {
                 LoanDetailItem("Rate", "${loan.interestRate}%")
                 LoanDetailItem("Remaining", "${summary.remainingInstallments} EMIs")
             }
-            LinearProgressIndicator(progress = { progress.toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().height(6.dp))
+            LinearProgressIndicator(progress = progress.toFloat().coerceIn(0f, 1f), modifier = Modifier.fillMaxWidth().height(6.dp))
             Text("${(progress * 100).toInt()}% repaid", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -191,6 +193,7 @@ fun LoanCard(summary: LoanSummary, onClick: () -> Unit, onDelete: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditLoanScreen(loanId: Long?, onBack: () -> Unit, vm: LoanViewModel = hiltViewModel()) {
     val members by vm.allMembers.collectAsState()
@@ -290,6 +293,7 @@ fun AddEditLoanScreen(loanId: Long?, onBack: () -> Unit, vm: LoanViewModel = hil
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoanDetailScreen(loanId: Long, onEdit: (Long) -> Unit, onBack: () -> Unit, vm: LoanViewModel = hiltViewModel()) {
     var loan by remember { mutableStateOf<Loan?>(null) }
@@ -316,7 +320,7 @@ fun LoanDetailScreen(loanId: Long, onEdit: (Long) -> Unit, onBack: () -> Unit, v
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(l.loanName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                             Text("${l.loanType.name.replace("_", " ")} • ${l.lenderName}".trim(' ', '•'), style = MaterialTheme.typography.bodySmall)
-                            HorizontalDivider()
+                            Divider()
                             summary?.let { s ->
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     LoanDetailItem("Loan Amount", FinancialUtils.formatCurrency(l.loanAmount))
@@ -329,7 +333,7 @@ fun LoanDetailScreen(loanId: Long, onEdit: (Long) -> Unit, onBack: () -> Unit, v
                                     LoanDetailItem("Remaining", "${s.remainingInstallments} EMIs")
                                 }
                                 val progress = (l.loanAmount - s.outstandingPrincipal) / l.loanAmount
-                                LinearProgressIndicator(progress = { progress.toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().height(8.dp))
+                                LinearProgressIndicator(progress = progress.toFloat().coerceIn(0f, 1f), modifier = Modifier.fillMaxWidth().height(8.dp))
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Text("Interest Paid: ${FinancialUtils.formatCurrency(s.totalInterestPaid)}", style = MaterialTheme.typography.labelSmall, color = LossColor)
                                     Text("Principal Paid: ${FinancialUtils.formatCurrency(s.totalPrincipalPaid)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
@@ -368,6 +372,7 @@ fun LoanDetailScreen(loanId: Long, onEdit: (Long) -> Unit, onBack: () -> Unit, v
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoanDetailItem(label: String, value: String, valueColor: Color = MaterialTheme.colorScheme.onSurface) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {

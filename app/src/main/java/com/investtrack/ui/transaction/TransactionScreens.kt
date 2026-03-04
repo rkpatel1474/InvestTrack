@@ -1,5 +1,6 @@
 package com.investtrack.ui.transaction
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,7 +26,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -217,7 +218,7 @@ fun AddTransactionScreen(preSelectedSecurityId: Long?, onBack: () -> Unit, vm: T
                                 searchResults.take(5).forEach { sec ->
                                     ListItem(headlineContent = { Text(sec.securityName) }, supportingContent = { Text(sec.securityCode) },
                                         modifier = Modifier.clickable { selectedSecurity = sec; securityQuery = sec.securityName; showSearch = false; txnType = validTxnTypes.first() })
-                                    HorizontalDivider()
+                                    Divider()
                                 }
                             }
                         }

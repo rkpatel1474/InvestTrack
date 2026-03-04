@@ -277,7 +277,7 @@ fun AssetBreakdownCard(summary: PortfolioSummary, onClick: () -> Unit) {
                     Spacer(Modifier.width(8.dp))
                     Text("%.1f%%".format(ac.percentage), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                LinearProgressIndicator(progress = { (ac.percentage / 100f).toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().height(4.dp), color = assetClassColor(ac.assetClass), trackColor = MaterialTheme.colorScheme.surfaceVariant)
+                LinearProgressIndicator(progress = (ac.percentage / 100f).toFloat().coerceIn(0f, 1f), modifier = Modifier.fillMaxWidth().height(4.dp), color = assetClassColor(ac.assetClass), trackColor = MaterialTheme.colorScheme.surfaceVariant)
             }
         }
     }

@@ -24,7 +24,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -193,7 +193,7 @@ fun AddEditFamilyScreen(memberId: Long?, onBack: () -> Unit, vm: FamilyViewModel
                             NomineeForm(nominee = nominee,
                                 onUpdate = { nominees = nominees.toMutableList().also { l -> l[idx] = it } },
                                 onDelete = { nominees = nominees.toMutableList().also { l -> l.removeAt(idx) } })
-                            if (idx < nominees.lastIndex) HorizontalDivider()
+                            if (idx < nominees.lastIndex) Divider()
                         }
                     }
                 }

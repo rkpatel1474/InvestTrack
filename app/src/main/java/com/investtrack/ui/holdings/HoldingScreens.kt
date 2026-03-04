@@ -23,7 +23,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -111,6 +111,7 @@ class HoldingsViewModel @Inject constructor(
     fun getMembers() = familyRepo.getAllMembers()
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HoldingsScreen(onHoldingClick: (Long) -> Unit, onUpdatePrice: (Long) -> Unit, onBack: () -> Unit, vm: HoldingsViewModel = hiltViewModel()) {
     val holdings by vm.filteredHoldings.collectAsState()
@@ -156,6 +157,7 @@ fun HoldingsScreen(onHoldingClick: (Long) -> Unit, onUpdatePrice: (Long) -> Unit
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HoldingCard(holding: HoldingSummary, onClick: () -> Unit, onUpdatePrice: () -> Unit) {
     val gainColor = if (holding.unrealizedGain >= 0) GainColor else LossColor
@@ -179,7 +181,7 @@ fun HoldingCard(holding: HoldingSummary, onClick: () -> Unit, onUpdatePrice: () 
                 HoldingMetric("Avg Cost", if (holding.avgCostPrice > 0) "₹%.4f".format(holding.avgCostPrice) else "—")
                 HoldingMetric("Curr Price", if (holding.currentPrice > 0) "₹%.4f".format(holding.currentPrice) else "—")
             }
-            HorizontalDivider()
+            Divider()
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 HoldingMetric("Invested", FinancialUtils.formatCurrency(holding.totalCost))
                 HoldingMetric("Market Value", FinancialUtils.formatCurrency(holding.marketValue), MaterialTheme.colorScheme.primary)
@@ -194,6 +196,7 @@ fun HoldingCard(holding: HoldingSummary, onClick: () -> Unit, onUpdatePrice: () 
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HoldingMetric(label: String, value: String, valueColor: Color = MaterialTheme.colorScheme.onSurface) {
     Column {
@@ -202,6 +205,7 @@ fun HoldingMetric(label: String, value: String, valueColor: Color = MaterialThem
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HoldingDetailScreen(securityId: Long, onAddTransaction: (Long) -> Unit, onUpdatePrice: (Long) -> Unit, onBack: () -> Unit, vm: HoldingsViewModel = hiltViewModel()) {
     var security by remember { mutableStateOf<SecurityMaster?>(null) }
@@ -226,7 +230,7 @@ fun HoldingDetailScreen(securityId: Long, onAddTransaction: (Long) -> Unit, onUp
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(h.securityName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                             Text("${h.securityCode} • ${h.securityType.name.replace("_", " ")}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            HorizontalDivider()
+                            Divider()
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 HoldingMetric("Total Units", if (h.totalUnits > 0) "%.4f".format(h.totalUnits) else "—")
                                 HoldingMetric("Avg Cost", "₹%.4f".format(h.avgCostPrice))

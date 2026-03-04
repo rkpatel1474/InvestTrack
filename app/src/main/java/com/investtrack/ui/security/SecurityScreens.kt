@@ -89,6 +89,7 @@ class SecurityViewModel @Inject constructor(private val repo: SecurityRepository
     fun deleteSecurity(id: Long) = viewModelScope.launch { repo.deleteSecurity(id) }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecurityListScreen(onAddSecurity: () -> Unit, onEditSecurity: (Long) -> Unit, onBack: () -> Unit, vm: SecurityViewModel = hiltViewModel()) {
     val securities by vm.filteredSecurities.collectAsState()
@@ -114,6 +115,7 @@ fun SecurityListScreen(onAddSecurity: () -> Unit, onEditSecurity: (Long) -> Unit
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecurityCard(sec: SecurityMaster, onEdit: () -> Unit, onDelete: () -> Unit) {
     var showDelete by remember { mutableStateOf(false) }
@@ -143,6 +145,7 @@ fun SecurityCard(sec: SecurityMaster, onEdit: () -> Unit, onDelete: () -> Unit) 
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditSecurityScreen(securityId: Long?, onBack: () -> Unit, vm: SecurityViewModel = hiltViewModel()) {
     var securityCode by remember { mutableStateOf("") }

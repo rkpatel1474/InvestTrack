@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             InvestTrackTheme {
-                InvestTrackApp()
+                InvestTrackMainApp()
             }
         }
     }
@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InvestTrackApp() {
+fun InvestTrackMainApp() {
     val navController = rememberNavController()
 
     val bottomNavItems = listOf(
