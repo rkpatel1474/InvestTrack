@@ -1,5 +1,4 @@
 package com.investtrack.ui.holdings
-@file:OptIn(ExperimentalMaterial3Api::class)
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,8 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
@@ -113,6 +112,7 @@ class HoldingsViewModel @Inject constructor(
     fun getMembers() = familyRepo.getAllMembers()
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HoldingsScreen(onHoldingClick: (Long) -> Unit, onUpdatePrice: (Long) -> Unit, onBack: () -> Unit, vm: HoldingsViewModel = hiltViewModel()) {
     val holdings by vm.filteredHoldings.collectAsState()
@@ -158,6 +158,7 @@ fun HoldingsScreen(onHoldingClick: (Long) -> Unit, onUpdatePrice: (Long) -> Unit
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HoldingCard(holding: HoldingSummary, onClick: () -> Unit, onUpdatePrice: () -> Unit) {
     val gainColor = if (holding.unrealizedGain >= 0) GainColor else LossColor
@@ -204,6 +205,7 @@ fun HoldingMetric(label: String, value: String, valueColor: Color = MaterialThem
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HoldingDetailScreen(securityId: Long, onAddTransaction: (Long) -> Unit, onUpdatePrice: (Long) -> Unit, onBack: () -> Unit, vm: HoldingsViewModel = hiltViewModel()) {
     var security by remember { mutableStateOf<SecurityMaster?>(null) }

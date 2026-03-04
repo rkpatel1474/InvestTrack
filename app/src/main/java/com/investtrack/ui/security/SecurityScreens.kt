@@ -1,5 +1,4 @@
 package com.investtrack.ui.security
-@file:OptIn(ExperimentalMaterial3Api::class)
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,8 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -91,6 +90,7 @@ class SecurityViewModel @Inject constructor(private val repo: SecurityRepository
     fun deleteSecurity(id: Long) = viewModelScope.launch { repo.deleteSecurity(id) }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecurityListScreen(onAddSecurity: () -> Unit, onEditSecurity: (Long) -> Unit, onBack: () -> Unit, vm: SecurityViewModel = hiltViewModel()) {
     val securities by vm.filteredSecurities.collectAsState()
@@ -116,6 +116,7 @@ fun SecurityListScreen(onAddSecurity: () -> Unit, onEditSecurity: (Long) -> Unit
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecurityCard(sec: SecurityMaster, onEdit: () -> Unit, onDelete: () -> Unit) {
     var showDelete by remember { mutableStateOf(false) }
@@ -145,6 +146,7 @@ fun SecurityCard(sec: SecurityMaster, onEdit: () -> Unit, onDelete: () -> Unit) 
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditSecurityScreen(securityId: Long?, onBack: () -> Unit, vm: SecurityViewModel = hiltViewModel()) {
     var securityCode by remember { mutableStateOf("") }
