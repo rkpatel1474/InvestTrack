@@ -1,7 +1,7 @@
 package com.investtrack.data.database.dao
 
 import androidx.room.Dao
-import androidx.room.Delete
+import androidx.room.Deletetail -10 app/src/main/java/com/investtrack/data/database/dao/Daos.kotlinx
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -189,12 +189,4 @@ interface SipPlanDao {
 
                                         @Query("UPDATE sip_plans SET isActive = 0 WHERE id = :id")
                                             suspend fun deactivate(id: Long)
-}
-}
-}
-}
-}
-}
-}
-}
 }
