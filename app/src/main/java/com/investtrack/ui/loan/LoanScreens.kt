@@ -1,4 +1,5 @@
 package com.investtrack.ui.loan
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -122,7 +124,6 @@ class LoanViewModel @Inject constructor(
     suspend fun getLoan(id: Long) = loanRepo.getLoanById(id)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoanListScreen(onAddLoan: () -> Unit, onLoanDetail: (Long) -> Unit, onBack: () -> Unit, vm: LoanViewModel = hiltViewModel()) {
     val loans by vm.allLoans.collectAsState()
@@ -158,7 +159,6 @@ fun LoanListScreen(onAddLoan: () -> Unit, onLoanDetail: (Long) -> Unit, onBack: 
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoanCard(summary: LoanSummary, onClick: () -> Unit, onDelete: () -> Unit) {
     var showDelete by remember { mutableStateOf(false) }
@@ -193,7 +193,6 @@ fun LoanCard(summary: LoanSummary, onClick: () -> Unit, onDelete: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditLoanScreen(loanId: Long?, onBack: () -> Unit, vm: LoanViewModel = hiltViewModel()) {
     val members by vm.allMembers.collectAsState()
@@ -293,7 +292,6 @@ fun AddEditLoanScreen(loanId: Long?, onBack: () -> Unit, vm: LoanViewModel = hil
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoanDetailScreen(loanId: Long, onEdit: (Long) -> Unit, onBack: () -> Unit, vm: LoanViewModel = hiltViewModel()) {
     var loan by remember { mutableStateOf<Loan?>(null) }
@@ -372,7 +370,6 @@ fun LoanDetailScreen(loanId: Long, onEdit: (Long) -> Unit, onBack: () -> Unit, v
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoanDetailItem(label: String, value: String, valueColor: Color = MaterialTheme.colorScheme.onSurface) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
