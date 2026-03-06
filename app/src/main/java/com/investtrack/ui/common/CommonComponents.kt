@@ -33,19 +33,30 @@ fun MetricCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 icon?.invoke()
                 if (icon != null) Spacer(Modifier.width(8.dp))
-                Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    title,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    letterSpacing = 0.5.sp
+                )
             }
-            Spacer(Modifier.height(4.dp))
-            Text(value, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = valueColor)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                value,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = valueColor
+            )
             subtitle?.let {
+                Spacer(Modifier.height(2.dp))
                 Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -59,11 +70,12 @@ fun GainLossText(value: Double, suffix: String = "%", modifier: Modifier = Modif
         value < 0 -> LossColor
         else -> NeutralColor
     }
-    val prefix = if (value > 0) "▲" else if (value < 0) "▼" else ""
+    val prefix = if (value > 0) "▲ " else if (value < 0) "▼ " else ""
     Text(
-        text = "$prefix ${"%.2f".format(value)}$suffix",
+        text = "$prefix${"%.2f".format(value)}$suffix",
         color = color,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Bold,
+        fontSize = 13.sp,
         modifier = modifier
     )
 }
@@ -71,11 +83,16 @@ fun GainLossText(value: Double, suffix: String = "%", modifier: Modifier = Modif
 @Composable
 fun SectionHeader(title: String, action: (@Composable () -> Unit)? = null) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
         action?.invoke()
     }
 }
@@ -97,7 +114,7 @@ fun InputField(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            label = { Text(label) },
+            label = { Text(label, style = MaterialTheme.typography.labelLarge) },
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             trailingIcon = trailingIcon,
@@ -105,10 +122,19 @@ fun InputField(
             enabled = enabled,
             readOnly = readOnly,
             singleLine = true,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            )
         )
         if (isError && errorMessage != null) {
-            Text(errorMessage, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 16.dp, top = 4.dp))
+            Text(
+                errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
         }
     }
 }
@@ -129,15 +155,19 @@ fun <T> DropdownField(
             value = selectedOption?.let { optionLabel(it) } ?: "",
             onValueChange = {},
             readOnly = true,
-            label = { Text(label) },
+            label = { Text(label, style = MaterialTheme.typography.labelLarge) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.menuAnchor().fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            )
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(optionLabel(option)) },
+                    text = { Text(optionLabel(option), style = MaterialTheme.typography.bodyMedium) },
                     onClick = { onOptionSelected(option); expanded = false }
                 )
             }
@@ -159,10 +189,21 @@ fun DateField(
         value = displayDate,
         onValueChange = {},
         readOnly = true,
-        label = { Text(label) },
-        trailingIcon = { Icon(Icons.Default.CalendarToday, null, modifier = Modifier.clickable { showPicker = true }) },
+        label = { Text(label, style = MaterialTheme.typography.labelLarge) },
+        trailingIcon = {
+            Icon(
+                Icons.Default.CalendarToday,
+                null,
+                modifier = Modifier.clickable { showPicker = true },
+                tint = MaterialTheme.colorScheme.primary
+            )
+        },
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+        )
     )
     if (showPicker) {
         DatePickerDialog(
@@ -179,7 +220,9 @@ fun DatePickerDialog(onDateSelected: (Long) -> Unit, onDismiss: () -> Unit) {
     androidx.compose.material3.DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = { state.selectedDateMillis?.let { onDateSelected(it) }; onDismiss() }) { Text("OK") }
+            TextButton(onClick = { state.selectedDateMillis?.let { onDateSelected(it) }; onDismiss() }) {
+                Text("OK", fontWeight = FontWeight.Bold)
+            }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     ) {
@@ -187,27 +230,52 @@ fun DatePickerDialog(onDateSelected: (Long) -> Unit, onDismiss: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBarWithBack(title: String, onBack: () -> Unit, actions: @Composable RowScope.() -> Unit = {}) {
-    @OptIn(ExperimentalMaterial3Api::class)
     TopAppBar(
-        title = { Text(title, fontWeight = FontWeight.Bold) },
-        navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") } },
+        title = { Text(title, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge) },
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(
+                    Icons.Default.ArrowBack,
+                    "Back",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        },
         actions = actions,
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.background,
+            titleContentColor = MaterialTheme.colorScheme.onBackground
+        )
     )
 }
 
 @Composable
-fun EmptyState(message: String, icon: @Composable () -> Unit = { Icon(Icons.Default.Inbox, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }) {
+fun EmptyState(
+    message: String,
+    icon: @Composable () -> Unit = {
+        Icon(
+            Icons.Default.Inbox,
+            null,
+            modifier = Modifier.size(72.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+        )
+    }
+) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(32.dp),
+        modifier = Modifier.fillMaxWidth().padding(48.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         icon()
-        Spacer(Modifier.height(16.dp))
-        Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(20.dp))
+        Text(
+            message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        )
     }
 }
 
@@ -219,6 +287,6 @@ fun PillChip(text: String, color: Color, modifier: Modifier = Modifier) {
             .background(color.copy(alpha = 0.15f))
             .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
-        Text(text, color = color, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Text(text, color = color, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.3.sp)
     }
 }
