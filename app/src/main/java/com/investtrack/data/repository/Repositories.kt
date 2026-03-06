@@ -61,6 +61,7 @@ class TransactionRepository @Inject constructor(private val dao: TransactionDao)
     fun getRecentTransactions(limit: Int = 10) = dao.getRecentTransactions(limit)
     suspend fun getByMemberAndSecurity(memberId: Long, securityId: Long) =
         dao.getTransactionsByMemberAndSecurity(memberId, securityId)
+    suspend fun getById(id: Long) = dao.getTransactionById(id)
     suspend fun insert(transaction: Transaction) = dao.insert(transaction)
     suspend fun update(transaction: Transaction) = dao.update(transaction)
     suspend fun delete(transaction: Transaction) = dao.delete(transaction)
