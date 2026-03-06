@@ -430,4 +430,51 @@ fun AddTransactionScreen(
                 }
             }
             item {
-                Card
+                Card(shape = RoundedCornerShape(16.dp)) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("Amount Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        if (isUnitBased) {
+                            InputField("Units *", units, { units = it }, keyboardType = KeyboardType.Decimal)
+                            InputField("Price / NAV (₹) *", price, { price = it }, keyboardType = KeyboardType.Decimal)
+                            if (units.isNotBlank() && price.isNotBlank()) {
+                                val totalAmt = (units.toDoubleOrNull() ?: 0.0) * (price.toDoubleOrNull() ?: 0.0)
+                                Text(
+                                    "Total: ${FinancialUtils.formatCurrencyFull(totalAmt)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        } else {
+                            InputField("Amount (₹) *", amount, { amount = it }, keyboardType = KeyboardType.Decimal)
+                        }
+                        if (selectedSecurity?.securityType in listOf(SecurityType.MUTUAL_FUND, SecurityType.SHARES)) {
+                            InputField("Folio / DP No.", folioNumber, { folioNumber = it })
+                        }
+                    }
+                }
+            }
+            if (isUnitBased && selectedSecurity?.securityType in listOf(SecurityType.SHARES, SecurityType.BOND)) {
+                item {
+                    Card(shape = RoundedCornerShape(16.dp)) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("Charges (Optional)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                InputField("Brokerage (₹)", brokerage, { brokerage = it }, modifier = Modifier.weight(1f), keyboardType = KeyboardType.Decimal)
+                                InputField("STT (₹)", stt, { stt = it }, modifier = Modifier.weight(1f), keyboardType = KeyboardType.Decimal)
+                            }
+                            InputField("Stamp Duty (₹)", stampDuty, { stampDuty = it }, keyboardType = KeyboardType.Decimal)
+                        }
+                    }
+                }
+            }
+            item {
+                Card(shape = RoundedCornerShape(16.dp)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        InputField("Notes (Optional)", notes, { notes = it })
+                    }
+                }
+            }
+        }
+    }
+}
