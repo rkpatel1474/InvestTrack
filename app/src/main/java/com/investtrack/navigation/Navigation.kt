@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.investtrack.ui.dashboard.DashboardScreen
+import com.investtrack.ui.more.MoreScreen
 import com.investtrack.ui.family.FamilyListScreen
 import com.investtrack.ui.family.AddEditFamilyScreen
 import com.investtrack.ui.security.SecurityListScreen
@@ -22,6 +23,7 @@ import com.investtrack.ui.holdings.HoldingDetailScreen
 
 sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
+    object More : Screen("more")
     object FamilyList : Screen("family_list")
     object AddEditFamily : Screen("add_edit_family?memberId={memberId}") {
         fun createRoute(memberId: Long? = null) = if (memberId != null) "add_edit_family?memberId=$memberId" else "add_edit_family?memberId=-1"
@@ -56,6 +58,13 @@ sealed class Screen(val route: String) {
 @Composable
 fun InvestTrackNavHost(navController: NavHostController) {
     NavHost(navController = navController, startDestination = Screen.Dashboard.route) {
+        composable(Screen.More.route) {
+            MoreScreen(
+                onNavigateToFamily = { navController.navigate(Screen.FamilyList.route) },
+                onNavigateToSecurity = { navController.navigate(Screen.SecurityList.route) },
+                onNavigateToPriceUpdate = { navController.navigate(Screen.PriceUpdate.createRoute()) }
+            )
+        }
         composable(Screen.Dashboard.route) {
             DashboardScreen(
                 onNavigateToHoldings = { navController.navigate(Screen.Holdings.route) },
