@@ -231,8 +231,11 @@ fun <T> DropdownField(
 @Composable
 fun DateField(label: String, value: Long, onValueChange: (Long) -> Unit, modifier: Modifier = Modifier) {
     var showPicker by remember { mutableStateOf(false) }
+    val displayText = remember(value) {
+        java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(value))
+    }
     OutlinedTextField(
-        value = DateUtils.toDisplayDate(value),
+        value = displayText,
         onValueChange = {},
         readOnly = true,
         label = { Text(label) },
