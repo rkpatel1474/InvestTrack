@@ -92,6 +92,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE familyMemberId = :memberId AND securityId = :securityId ORDER BY transactionDate ASC")
     suspend fun getTransactionsByMemberAndSecurity(memberId: Long, securityId: Long): List<Transaction>
 
+    @Query("SELECT * FROM transactions WHERE securityId = :securityId ORDER BY transactionDate ASC")
+    suspend fun getAllTransactionsForSecurity(securityId: Long): List<Transaction>
+
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun getTransactionById(id: Long): Transaction?
 

@@ -129,27 +129,9 @@ class PortfolioRepository @Inject constructor(
         val allSecurityIds = transactionDao.getAllDistinctSecurityIds()
         return allSecurityIds.mapNotNull { secId ->
             val security = securityMasterDao.getSecurityById(secId) ?: return@mapNotNull null
-            val txns = if (familyMemberId != null)
-                transactionDao.getTransactionsByMemberAndSecurity(familyMemberId, secId)
-            else
-                transactionDao.getTransactionsByMemberAndSecurity(0, secId).let {
-                    transactionDao.getAllDistinctSecurityIds()
-                    transactionDao.getTransactionsByMemberAndSecurity(familyMemberId ?: 0, secId)
-                }
 
-            val allTxns = transactionDao.getTransactionsByMemberAndSecurity(
-                familyMemberId ?: -1, secId
-            ).takeIf { familyMemberId != null }
-                ?: run {
-                    val ids = transactionDao.getAllDistinctSecurityIds()
-                    // get all txns for this security regardless of member
-                    val result = mutableListOf<Transaction>()
-                    // simplified: just use all transactions for security
-                    result
-                }
-
-            // Get all transactions for this security
-            val secTxns = transactionDao.getTransactionsByMemberAndSecurity(0, secId)
+            // Get ALL transactions for this security across all members
+            val secTxns = transactionDao.getAllTransactionsForSecurity(secId)
             val latestPrice = priceHistoryDao.getLatestPrice(secId)?.price
 
             // Calculate holdings
