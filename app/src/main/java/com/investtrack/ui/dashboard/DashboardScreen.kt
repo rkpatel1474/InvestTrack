@@ -331,7 +331,7 @@ fun AllocationPieCard(data: List<Pair<String, Double>>) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             // Pie chart
             DonutChart(
-                data = data.map { it.second / total },
+                data = data.map { (it.second / total).toFloat() },
                 colors = pieColors.take(data.size),
                 modifier = Modifier.size(120.dp)
             )
@@ -352,7 +352,7 @@ fun AllocationPieCard(data: List<Pair<String, Double>>) {
 }
 
 @Composable
-fun DonutChart(data: List<Double>, colors: List<Color>, modifier: Modifier = Modifier) {
+fun DonutChart(data: List<Float>, colors: List<Color>, modifier: Modifier = Modifier) {
     val animProgress by animateFloatAsState(1f, tween(1000, easing = FastOutSlowInEasing), label = "pie")
     Canvas(modifier = modifier) {
         val stroke   = 28.dp.toPx()
