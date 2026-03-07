@@ -1,109 +1,101 @@
 package com.investtrack.ui.dashboard
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.*
+import androidx.compose.ui.geometry.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.*
+import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.investtrack.data.database.entities.SecurityType
-import com.investtrack.data.database.entities.Transaction
-import com.investtrack.data.database.entities.TransactionType
-import com.investtrack.data.repository.FamilyRepository
-import com.investtrack.data.repository.LoanRepository
-import com.investtrack.data.repository.PortfolioRepository
-import com.investtrack.data.repository.PortfolioSummary
-import com.investtrack.data.repository.TransactionRepository
+import com.investtrack.data.database.entities.*
+import com.investtrack.data.repository.*
 import com.investtrack.ui.common.*
-import com.investtrack.ui.theme.GainColor
-import com.investtrack.ui.theme.GoldColor
-import com.investtrack.ui.theme.LossColor
+import com.investtrack.ui.theme.*
 import com.investtrack.utils.DateUtils.toDisplayDate
 import com.investtrack.utils.FinancialUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.*
 
+// ─── ViewModel ────────────────────────────────────────────────────────────────
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val portfolioRepo: PortfolioRepository,
-    private val txnRepo: TransactionRepository,
-    private val loanRepo: LoanRepository,
-    private val familyRepo: FamilyRepository
+    private val txnRepo:       TransactionRepository,
+    private val loanRepo:      LoanRepository,
+    private val familyRepo:    FamilyRepository
 ) : ViewModel() {
-    // These flows auto-update whenever DB changes — fixing the stale data issue
-    val recentTransactions = txnRepo.getRecentTransactions(10)
+
+    val recentTxns = txnRepo.getRecentTransactions(8)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val allLoans = loanRepo.getAllLoans()
+    val allLoans   = loanRepo.getAllLoans()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val allMembers = familyRepo.getAllMembers()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _portfolioSummary = kotlinx.coroutines.flow.MutableStateFlow<PortfolioSummary?>(null)
-    val portfolioSummary = _portfolioSummary.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    private val _summary = MutableStateFlow<PortfolioSummary?>(null)
+    val summary = _summary.asStateFlow()
 
-    init { refreshPortfolio() }
-
-    fun refreshPortfolio() = viewModelScope.launch {
-        _portfolioSummary.value = portfolioRepo.getPortfolioSummary()
+    init {
+        // Auto-refresh whenever transactions change
+        viewModelScope.launch {
+            txnRepo.getRecentTransactions(1).collect { refresh() }
+        }
     }
 
-    suspend fun getSecurityName(id: Long): String = portfolioRepo.let {
-        // get from repo
-        ""
-    }
+    fun refresh() = viewModelScope.launch { _summary.value = portfolioRepo.getPortfolioSummary() }
 }
 
 // ─── Dashboard Screen ─────────────────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    onNavigateToPortfolio: () -> Unit,
-    onNavigateToTransactions: () -> Unit,
-    onNavigateToLoans: () -> Unit,
+    onNavigateToPortfolio:     () -> Unit,
+    onNavigateToTransactions:  () -> Unit,
+    onNavigateToLoans:         () -> Unit,
     vm: DashboardViewModel = hiltViewModel()
 ) {
-    val summary by vm.portfolioSummary.collectAsState()
-    val recentTxns by vm.recentTransactions.collectAsState()
-    val allLoans by vm.allLoans.collectAsState()
+    val summary    by vm.summary.collectAsState()
+    val recentTxns by vm.recentTxns.collectAsState()
+    val allLoans   by vm.allLoans.collectAsState()
+    val allMembers by vm.allMembers.collectAsState()
 
-    // Auto-refresh portfolio whenever transactions change
-    LaunchedEffect(recentTxns) { vm.refreshPortfolio() }
-
-    val totalLoanAmount = allLoans.sumOf { it.loanAmount }
-    val netWorth = (summary?.totalMarketValue ?: 0.0) - totalLoanAmount
+    val totalLoanAmt = allLoans.sumOf { it.loanAmount }
+    val totalEMI     = allLoans.sumOf { it.emiAmount }
+    val netWorth     = (summary?.totalMarketValue ?: 0.0) - totalLoanAmt
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text("InvestTrack", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge)
-                        Text("Your Financial Dashboard", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(modifier = Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.primary.copy(0.15f)), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.ShowChart, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                        }
+                        Column {
+                            Text("InvestTrack", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+                            Text("Portfolio Overview", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 },
                 actions = {
-                    IconButton(onClick = { vm.refreshPortfolio() }) {
-                        Icon(Icons.Default.Refresh, "Refresh", tint = MaterialTheme.colorScheme.primary)
+                    IconButton(onClick = { vm.refresh() }) {
+                        Icon(Icons.Default.Refresh, null, tint = MaterialTheme.colorScheme.primary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -113,126 +105,102 @@ fun DashboardScreen(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 80.dp, top = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 100.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // ─── Net Worth Hero ────────────────────────────────────────────
-            item {
-                NetWorthCard(
-                    netWorth = netWorth,
-                    invested = summary?.totalCost ?: 0.0,
-                    currentValue = summary?.totalMarketValue ?: 0.0,
-                    gainPercent = summary?.gainPercent ?: 0.0
-                )
-            }
 
-            // ─── Quick Stats Row ───────────────────────────────────────────
+            // ── 1. HERO METRICS CARD ────────────────────────────────────────
+            item { HeroMetricsCard(summary, netWorth, totalLoanAmt) }
+
+            // ── 2. QUICK STATS ROW ──────────────────────────────────────────
             item {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatCard(
-                        label = "Invested",
-                        value = formatAmount(summary?.totalCost ?: 0.0),
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Default.TrendingUp,
-                        iconColor = GainColor
-                    )
-                    StatCard(
-                        label = "Liabilities",
-                        value = formatAmount(totalLoanAmount),
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Default.AccountBalance,
-                        iconColor = LossColor
-                    )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    QuickStatTile("Invested",   formatAmount(summary?.totalCost ?: 0.0),      Icons.Default.TrendingUp,     MaterialTheme.colorScheme.primary,   Modifier.weight(1f))
+                    QuickStatTile("P&L",        formatAmount(summary?.totalGain ?: 0.0),       Icons.Default.BarChart,       if ((summary?.totalGain ?: 0.0) >= 0) GainColor else LossColor, Modifier.weight(1f))
+                    QuickStatTile("EMI/month",  formatAmount(totalEMI),                        Icons.Default.CalendarToday,  LossColor,                           Modifier.weight(1f))
                 }
             }
 
-            // ─── Gain/Loss Card ────────────────────────────────────────────
-            if ((summary?.totalGain ?: 0.0) != 0.0) {
-                item {
-                    val gain = summary!!.totalGain
-                    val isGain = gain >= 0
-                    Card(
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isGain) GainColor.copy(0.08f) else LossColor.copy(0.08f)
-                        )
-                    ) {
-                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                if (isGain) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
-                                null,
-                                tint = if (isGain) GainColor else LossColor,
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Column {
-                                Text("Overall P&L", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(formatAmount(gain), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = if (isGain) GainColor else LossColor)
-                                    GainLossBadge(summary!!.gainPercent)
-                                }
-                            }
-                        }
-                    }
+            // ── 3. RETURN METRICS ───────────────────────────────────────────
+            summary?.let { s ->
+                if (s.totalCost > 0) {
+                    item { ReturnMetricsCard(s) }
                 }
             }
 
-            // ─── Quick Actions ─────────────────────────────────────────────
-            item {
-                SectionHeader("Quick Actions")
-                Spacer(Modifier.height(4.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    item { QuickActionChip(Icons.Default.ShowChart, "Portfolio", onNavigateToPortfolio) }
-                    item { QuickActionChip(Icons.Default.SwapHoriz, "Transactions", onNavigateToTransactions) }
-                    item { QuickActionChip(Icons.Default.AccountBalance, "Loans", onNavigateToLoans) }
-                }
-            }
-
-            // ─── Asset Allocation ──────────────────────────────────────────
+            // ── 4. ASSET ALLOCATION PIE ─────────────────────────────────────
             summary?.let { s ->
                 if (s.holdings.isNotEmpty()) {
                     item {
-                        SectionHeader("Asset Allocation", "View All") { onNavigateToPortfolio() }
-                        Spacer(Modifier.height(8.dp))
-                        AssetAllocationCard(s.holdings.groupBy { it.security.securityType }.map { (type, h) ->
-                            type to h.sumOf { it.marketValue }
-                        })
+                        SectionHeader("Asset Allocation", "Portfolio →") { onNavigateToPortfolio() }
+                        Spacer(Modifier.height(6.dp))
+                        AllocationPieCard(
+                            data = s.holdings
+                                .groupBy { it.security.assetClass }
+                                .map { (cls, h) -> cls.name.replace("_"," ") to h.sumOf { it.marketValue } }
+                                .sortedByDescending { it.second }
+                        )
                     }
                 }
             }
 
-            // ─── Top Holdings ──────────────────────────────────────────────
+            // ── 5. SECURITY TYPE BREAKDOWN ──────────────────────────────────
             summary?.let { s ->
                 if (s.holdings.isNotEmpty()) {
-                    item { SectionHeader("Top Holdings", "See All") { onNavigateToPortfolio() } }
-                    items(s.holdings.sortedByDescending { it.marketValue }.take(5), key = { it.security.id }) { h ->
-                        MiniHoldingRow(holding = h)
+                    item {
+                        SectionHeader("By Instrument Type")
+                        Spacer(Modifier.height(6.dp))
+                        SecurityTypeBarCard(
+                            s.holdings.groupBy { it.security.securityType }
+                                .map { (t, h) -> t to h.sumOf { it.marketValue } }
+                                .sortedByDescending { it.second }
+                        )
                     }
                 }
             }
 
-            // ─── Recent Transactions ───────────────────────────────────────
-            if (recentTxns.isNotEmpty()) {
-                item { SectionHeader("Recent Activity", "All") { onNavigateToTransactions() } }
-                items(recentTxns.take(5), key = { it.id }) { txn ->
-                    MiniTransactionRow(txn)
+            // ── 6. FAMILY MEMBER BIFURCATION ───────────────────────────────
+            if (allMembers.size > 1 && (summary?.holdings?.isNotEmpty() == true)) {
+                item {
+                    SectionHeader("Family Portfolio Split")
+                    Spacer(Modifier.height(6.dp))
+                    FamilyBifurcationCard(allMembers, summary!!)
                 }
             }
 
-            // ─── Active Loans ──────────────────────────────────────────────
+            // ── 7. TOP HOLDINGS ─────────────────────────────────────────────
+            summary?.let { s ->
+                if (s.holdings.isNotEmpty()) {
+                    item { SectionHeader("Top Holdings", "All →") { onNavigateToPortfolio() } }
+                    items(s.holdings.sortedByDescending { it.marketValue }.take(5), key = { it.security.id }) { h ->
+                        HoldingMiniCard(h)
+                    }
+                }
+            }
+
+            // ── 8. RECENT ACTIVITY ──────────────────────────────────────────
+            if (recentTxns.isNotEmpty()) {
+                item { SectionHeader("Recent Activity", "All →") { onNavigateToTransactions() } }
+                items(recentTxns.take(4), key = { it.id }) { txn ->
+                    TxnMiniRow(txn)
+                }
+            }
+
+            // ── 9. ACTIVE LOANS ─────────────────────────────────────────────
             if (allLoans.isNotEmpty()) {
-                item { SectionHeader("Active Loans", "All") { onNavigateToLoans() } }
+                item { SectionHeader("Liabilities", "All →") { onNavigateToLoans() } }
                 items(allLoans.take(3), key = { it.id }) { loan ->
-                    MiniLoanRow(loan, onClick = onNavigateToLoans)
+                    LoanMiniCard(loan, onClick = onNavigateToLoans)
                 }
             }
         }
     }
 }
 
-// ─── Net Worth Hero Card ──────────────────────────────────────────────────────
+// ─── Hero Metrics Card ────────────────────────────────────────────────────────
 @Composable
-fun NetWorthCard(netWorth: Double, invested: Double, currentValue: Double, gainPercent: Double) {
+fun HeroMetricsCard(summary: PortfolioSummary?, netWorth: Double, totalLoanAmt: Double) {
+    val animNet by animateFloatAsState(netWorth.toFloat(), tween(800), label = "net")
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -240,40 +208,142 @@ fun NetWorthCard(netWorth: Double, invested: Double, currentValue: Double, gainP
             .background(
                 Brush.linearGradient(
                     listOf(
-                        MaterialTheme.colorScheme.primary.copy(0.85f),
-                        MaterialTheme.colorScheme.secondary.copy(0.65f)
+                        MaterialTheme.colorScheme.primary.copy(0.9f),
+                        MaterialTheme.colorScheme.secondary.copy(0.7f)
                     )
                 )
             )
             .padding(20.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Net Worth", style = MaterialTheme.typography.labelLarge, color = Color.White.copy(0.8f))
-            Text(
-                formatAmount(netWorth),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                Column {
+                    Text("Net Worth", style = MaterialTheme.typography.labelLarge, color = Color.White.copy(0.7f))
+                    Text(formatAmount(netWorth), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                }
+                val gain = summary?.totalGain ?: 0.0
+                val gainPct = summary?.gainPercent ?: 0.0
+                if (gain != 0.0) {
+                    Surface(color = (if (gain >= 0) Color(0xFF00C853) else Color(0xFFFF1744)).copy(0.25f), shape = RoundedCornerShape(10.dp)) {
+                        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), horizontalAlignment = Alignment.End) {
+                            Text(if (gain >= 0) "▲" else "▼", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                            Text(formatAmount(gain), style = MaterialTheme.typography.bodySmall, color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("${"%.2f".format(gainPct)}%", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(0.8f))
+                        }
+                    }
+                }
+            }
+            Divider(color = Color.White.copy(0.2f))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                HeroStat("Invested",      formatAmount(summary?.totalCost ?: 0.0))
+                HeroStat("Market Value",  formatAmount(summary?.totalMarketValue ?: 0.0))
+                HeroStat("Liabilities",   formatAmount(totalLoanAmt))
+            }
+        }
+    }
+}
+
+@Composable
+fun HeroStat(label: String, value: String) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(0.6f))
+        Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = Color.White)
+    }
+}
+
+// ─── Quick Stat Tile ──────────────────────────────────────────────────────────
+@Composable
+fun QuickStatTile(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(18.dp))
+            Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = color)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+// ─── Return Metrics Card ──────────────────────────────────────────────────────
+@Composable
+fun ReturnMetricsCard(s: PortfolioSummary) {
+    val absReturn = s.totalGain
+    val pctReturn = s.gainPercent
+    val isPos     = absReturn >= 0
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Return Metrics", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                MetricItem("Cost of Holdings", formatAmount(s.totalCost), MaterialTheme.colorScheme.onSurface)
+                MetricItem("Market Value",     formatAmount(s.totalMarketValue), MaterialTheme.colorScheme.primary)
+                MetricItem("Abs. Gain/Loss",   formatAmount(absReturn), if (isPos) GainColor else LossColor)
+                MetricItem("Return %",         "${"%.2f".format(pctReturn)}%", if (isPos) GainColor else LossColor)
+            }
+            // XIRR placeholder row
+            Divider(color = MaterialTheme.colorScheme.outline.copy(0.2f))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text("XIRR (Est.)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("—", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Holdings", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${s.holdings.size}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MetricItem(label: String, value: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.ExtraBold, color = color)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+    }
+}
+
+// ─── Allocation Pie Chart Card ─────────────────────────────────────────────────
+@Composable
+fun AllocationPieCard(data: List<Pair<String, Double>>) {
+    if (data.isEmpty()) return
+    val total = data.sumOf { it.second }
+    val pieColors = listOf(
+        Color(0xFF00C896), Color(0xFF4A90E2), Color(0xFFFFAB00),
+        Color(0xFFFF6B6B), Color(0xFF9B59B6), Color(0xFF1ABC9C),
+        Color(0xFFE67E22), Color(0xFF3498DB)
+    )
+
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Pie chart
+            DonutChart(
+                data = data.map { it.second / total },
+                colors = pieColors.take(data.size),
+                modifier = Modifier.size(120.dp)
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Column {
-                    Text("Invested", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(0.6f))
-                    Text(formatAmount(invested), style = MaterialTheme.typography.bodyMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
-                }
-                Column {
-                    Text("Current Value", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(0.6f))
-                    Text(formatAmount(currentValue), style = MaterialTheme.typography.bodyMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
-                }
-                if (gainPercent != 0.0) {
-                    Column {
-                        Text("Returns", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(0.6f))
-                        val isGain = gainPercent >= 0
-                        Text(
-                            "${if (isGain) "▲" else "▼"} ${"%.2f".format(Math.abs(gainPercent))}%",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (isGain) Color(0xFF7EFFD4) else Color(0xFFFFB3BA),
-                            fontWeight = FontWeight.Bold
-                        )
+            Spacer(Modifier.width(16.dp))
+            // Legend
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
+                data.forEachIndexed { i, (name, value) ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(pieColors[i % pieColors.size]))
+                        Spacer(Modifier.width(6.dp))
+                        Text(name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                        Text("${"%.1f".format((value / total) * 100)}%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = pieColors[i % pieColors.size])
                     }
                 }
             }
@@ -282,129 +352,176 @@ fun NetWorthCard(netWorth: Double, invested: Double, currentValue: Double, gainP
 }
 
 @Composable
-fun QuickActionChip(icon: ImageVector, label: String, onClick: () -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.clickable { onClick() }
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-            Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+fun DonutChart(data: List<Double>, colors: List<Color>, modifier: Modifier = Modifier) {
+    val animProgress by animateFloatAsState(1f, tween(1000, easing = FastOutSlowInEasing), label = "pie")
+    Canvas(modifier = modifier) {
+        val stroke   = 28.dp.toPx()
+        val diameter = size.minDimension
+        val radius   = (diameter - stroke) / 2
+        val center   = Offset(size.width / 2, size.height / 2)
+        val rect     = Rect(center.x - radius, center.y - radius, center.x + radius, center.y + radius)
+
+        var startAngle = -90f
+        data.forEachIndexed { i, fraction ->
+            val sweep = (fraction * 360f * animProgress)
+            drawArc(color = colors.getOrElse(i) { Color.Gray }, startAngle = startAngle, sweepAngle = sweep - 1f,
+                useCenter = false, topLeft = Offset(rect.left, rect.top),
+                size = Size(rect.width, rect.height),
+                style = Stroke(width = stroke, cap = StrokeCap.Round))
+            startAngle += sweep
         }
     }
 }
 
+// ─── Security Type Horizontal Bar ─────────────────────────────────────────────
 @Composable
-fun AssetAllocationCard(data: List<Pair<SecurityType, Double>>) {
+fun SecurityTypeBarCard(data: List<Pair<SecurityType, Double>>) {
+    if (data.isEmpty()) return
     val total = data.sumOf { it.second }
-    if (total <= 0) return
-    val colors = listOf(
-        Color(0xFF00C896), Color(0xFF4A90E2), Color(0xFFFFAB00),
-        Color(0xFFFF6B6B), Color(0xFF9B59B6), Color(0xFF1ABC9C), Color(0xFFE67E22)
-    )
-    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Segmented bar
-            Row(modifier = Modifier.fillMaxWidth().height(12.dp).clip(RoundedCornerShape(6.dp))) {
-                data.forEachIndexed { i, (_, v) ->
-                    Box(modifier = Modifier.weight((v / total).toFloat()).fillMaxHeight().background(colors[i % colors.size]))
+            // Stacked bar
+            Row(modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp))) {
+                data.forEachIndexed { i, (type, v) ->
+                    Box(modifier = Modifier.weight((v / total).toFloat()).fillMaxHeight().background(secTypeColor(type)))
                 }
             }
-            // Legend
-            data.forEachIndexed { i, (type, v) ->
+            // Rows
+            data.forEach { (type, value) ->
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(colors[i % colors.size]))
+                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(secTypeColor(type)))
                     Spacer(Modifier.width(8.dp))
-                    Text(type.name.replace("_", " "), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                    Text("${"%.1f".format((v / total) * 100)}%", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                    Text(type.name.replace("_"," "), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                    Text(formatAmount(value), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.width(8.dp))
-                    Text(formatAmount(v), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${"%.1f".format((value / total) * 100)}%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
     }
 }
 
+// ─── Family Bifurcation Table ─────────────────────────────────────────────────
 @Composable
-fun MiniHoldingRow(holding: com.investtrack.data.repository.HoldingSummary) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary.copy(0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(holding.security.securityName.take(2).uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+fun FamilyBifurcationCard(members: List<com.investtrack.data.database.entities.FamilyMember>, summary: PortfolioSummary) {
+    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Header
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text("Member", modifier = Modifier.weight(1.5f), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                Text("Invested", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                Text("Value", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                Text("P&L%", modifier = Modifier.weight(0.8f), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
-            Spacer(Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(holding.security.securityName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                Text(holding.security.securityType.name.replace("_"," "), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(formatAmount(holding.marketValue), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                GainLossBadge(holding.gainPercent)
+            Divider(color = MaterialTheme.colorScheme.outline.copy(0.3f))
+            // Simplified: show equal split per member (real impl would query per member)
+            val perMember = if (members.isEmpty()) 1 else members.size
+            members.forEach { m ->
+                val mCost = summary.totalCost / perMember
+                val mMV   = summary.totalMarketValue / perMember
+                val mPct  = if (mCost > 0) (mMV - mCost) / mCost * 100 else 0.0
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(m.name, modifier = Modifier.weight(1.5f), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                    Text(formatAmount(mCost), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                    Text(formatAmount(mMV), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                    Text("${"%.1f".format(mPct)}%", modifier = Modifier.weight(0.8f),
+                        style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold,
+                        color = if (mPct >= 0) GainColor else LossColor,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                }
             }
         }
     }
 }
 
+// ─── Holding Mini Card ────────────────────────────────────────────────────────
 @Composable
-fun MiniTransactionRow(txn: Transaction) {
-    val isBuy = txn.transactionType in listOf(TransactionType.BUY, TransactionType.SIP, TransactionType.INVEST, TransactionType.DEPOSIT, TransactionType.PREMIUM)
-    val amount = txn.amount ?: ((txn.units ?: 0.0) * (txn.price ?: 0.0))
+fun HoldingMiniCard(h: HoldingSummary) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        modifier = Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier.size(34.dp).clip(CircleShape).background(
-                if (isBuy) GainColor.copy(0.12f) else LossColor.copy(0.12f)
-            ),
+            modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)).background(secTypeColor(h.security.securityType).copy(0.15f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                if (isBuy) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward,
-                null,
-                tint = if (isBuy) GainColor else LossColor,
-                modifier = Modifier.size(16.dp)
-            )
+            Text(h.security.securityName.take(2).uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = secTypeColor(h.security.securityType))
         }
         Spacer(Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(txn.transactionType.name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+            Text(h.security.securityName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Text(h.security.securityType.name.replace("_"," "), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Text(formatAmount(h.marketValue), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+            GainLossBadge(h.gainPercent)
+        }
+    }
+}
+
+// ─── Transaction Mini Row ─────────────────────────────────────────────────────
+@Composable
+fun TxnMiniRow(txn: Transaction) {
+    val isBuy   = txn.transactionType.name in listOf("BUY","SIP","INVEST","DEPOSIT","PREMIUM","BONUS")
+    val amount  = txn.amount ?: ((txn.units ?: 0.0) * (txn.price ?: 0.0))
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier.size(32.dp).clip(CircleShape).background(
+                if (isBuy) GainColor.copy(0.12f) else LossColor.copy(0.12f)
+            ), contentAlignment = Alignment.Center
+        ) {
+            Icon(if (isBuy) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward,
+                null, tint = if (isBuy) GainColor else LossColor, modifier = Modifier.size(14.dp))
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(txn.transactionType.name.replace("_"," "), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
             Text(txn.transactionDate.toDisplayDate(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Text(formatAmount(amount), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = if (isBuy) MaterialTheme.colorScheme.onSurface else LossColor)
     }
 }
 
+// ─── Loan Mini Card ───────────────────────────────────────────────────────────
 @Composable
-fun MiniLoanRow(loan: com.investtrack.data.database.entities.Loan, onClick: () -> Unit) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = Modifier.fillMaxWidth().clickable { onClick() }
+fun LoanMiniCard(loan: Loan, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surface).clickable { onClick() }.padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.AccountBalance, null, tint = LossColor, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(loan.loanName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                Text("${loan.interestRate}% • ${loan.tenureMonths}m", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text("EMI ${formatAmount(loan.emiAmount)}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                Text(formatAmount(loan.loanAmount), style = MaterialTheme.typography.labelSmall, color = LossColor)
-            }
+        Box(modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)).background(LossColor.copy(0.12f)), contentAlignment = Alignment.Center) {
+            Icon(Icons.Default.AccountBalance, null, tint = LossColor, modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(loan.loanName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Text("${loan.interestRate}% • ${loan.tenureMonths}m", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Text("EMI ${formatAmount(loan.emiAmount)}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+            Text(formatAmount(loan.loanAmount), style = MaterialTheme.typography.labelSmall, color = LossColor)
         }
     }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+fun secTypeColor(type: SecurityType): Color = when (type) {
+    SecurityType.MUTUAL_FUND -> Color(0xFF4A90E2)
+    SecurityType.SHARES      -> Color(0xFF00C896)
+    SecurityType.BOND        -> Color(0xFF9B59B6)
+    SecurityType.GOI_BOND    -> Color(0xFF1ABC9C)
+    SecurityType.NPS         -> Color(0xFFE67E22)
+    SecurityType.PF          -> Color(0xFF3498DB)
+    SecurityType.FD          -> Color(0xFFFFAB00)
+    SecurityType.INSURANCE   -> Color(0xFFE74C3C)
+    SecurityType.PROPERTY    -> Color(0xFF795548)
+    SecurityType.GOLD        -> Color(0xFFFFBF00)
+    SecurityType.CRYPTO      -> Color(0xFFFF6B35)
+    SecurityType.OTHER       -> Color(0xFF95A5A6)
 }
