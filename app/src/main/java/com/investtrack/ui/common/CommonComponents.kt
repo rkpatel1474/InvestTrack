@@ -1,10 +1,11 @@
 package com.investtrack.ui.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -12,236 +13,124 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.investtrack.ui.theme.GainColor
 import com.investtrack.ui.theme.LossColor
-import com.investtrack.ui.theme.NeutralColor
-import com.investtrack.utils.FinancialUtils
+import com.investtrack.utils.DateUtils
+import java.util.Calendar
 
+// ─── Stat Card ────────────────────────────────────────────────────────────────
 @Composable
-fun MetricCard(
-    title: String,
+fun StatCard(
+    label: String,
     value: String,
     modifier: Modifier = Modifier,
-    subtitle: String? = null,
     valueColor: Color = MaterialTheme.colorScheme.onSurface,
-    icon: @Composable (() -> Unit)? = null
+    icon: ImageVector? = null,
+    iconColor: Color = MaterialTheme.colorScheme.primary,
+    sub: String = ""
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                icon?.invoke()
-                if (icon != null) Spacer(Modifier.width(8.dp))
-                Text(
-                    title,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = 0.5.sp
-                )
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                icon?.let {
+                    Icon(it, null, tint = iconColor, modifier = Modifier.size(14.dp))
+                }
+                Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                value,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = valueColor
-            )
-            subtitle?.let {
-                Spacer(Modifier.height(2.dp))
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = valueColor)
+            if (sub.isNotEmpty()) Text(sub, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+// ─── Gradient Header Card ─────────────────────────────────────────────────────
+@Composable
+fun GradientHeaderCard(
+    title: String,
+    value: String,
+    subtitle: String = "",
+    gainLoss: Double? = null,
+    modifier: Modifier = Modifier
+) {
+    val brush = Brush.horizontalGradient(
+        listOf(
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+            MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
+        )
+    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(brush)
+            .padding(20.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, style = MaterialTheme.typography.labelLarge, color = Color.White.copy(0.8f))
+            Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
+            if (subtitle.isNotEmpty()) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(0.7f))
+            gainLoss?.let {
+                val sign = if (it >= 0) "▲" else "▼"
+                val color = if (it >= 0) Color(0xFF7EFFD4) else Color(0xFFFFB3BA)
+                Text("$sign ${"%.2f".format(it)}%", style = MaterialTheme.typography.bodyMedium, color = color, fontWeight = FontWeight.SemiBold)
             }
         }
     }
 }
 
+// ─── Section Header ───────────────────────────────────────────────────────────
 @Composable
-fun GainLossText(value: Double, suffix: String = "%", modifier: Modifier = Modifier) {
-    val color = when {
-        value > 0 -> GainColor
-        value < 0 -> LossColor
-        else -> NeutralColor
-    }
-    val prefix = if (value > 0) "▲ " else if (value < 0) "▼ " else ""
-    Text(
-        text = "$prefix${"%.2f".format(value)}$suffix",
-        color = color,
-        fontWeight = FontWeight.Bold,
-        fontSize = 13.sp,
-        modifier = modifier
-    )
-}
-
-@Composable
-fun SectionHeader(title: String, action: (@Composable () -> Unit)? = null) {
+fun SectionHeader(title: String, action: String = "", onAction: () -> Unit = {}) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        action?.invoke()
-    }
-}
-
-@Composable
-fun InputField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    trailingIcon: @Composable (() -> Unit)? = null,
-    isError: Boolean = false,
-    errorMessage: String? = null,
-    enabled: Boolean = true,
-    readOnly: Boolean = false
-) {
-    Column(modifier = modifier) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            label = { Text(label, style = MaterialTheme.typography.labelLarge) },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            trailingIcon = trailingIcon,
-            isError = isError,
-            enabled = enabled,
-            readOnly = readOnly,
-            singleLine = true,
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-            )
-        )
-        if (isError && errorMessage != null) {
-            Text(
-                errorMessage,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-            )
+        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        if (action.isNotEmpty()) {
+            Text(action, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable { onAction() })
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// ─── Amount Display ───────────────────────────────────────────────────────────
 @Composable
-fun <T> DropdownField(
-    label: String,
-    options: List<T>,
-    selectedOption: T?,
-    onOptionSelected: (T) -> Unit,
-    optionLabel: (T) -> String,
-    modifier: Modifier = Modifier
-) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }, modifier = modifier) {
-        OutlinedTextField(
-            value = selectedOption?.let { optionLabel(it) } ?: "",
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(label, style = MaterialTheme.typography.labelLarge) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-            )
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(optionLabel(option), style = MaterialTheme.typography.bodyMedium) },
-                    onClick = { onOptionSelected(option); expanded = false }
-                )
-            }
-        }
-    }
+fun AmountText(amount: Double, isHidden: Boolean = false, style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyMedium, color: Color = MaterialTheme.colorScheme.onSurface, fontWeight: FontWeight = FontWeight.Normal) {
+    val display = if (isHidden) "••••••" else formatAmount(amount)
+    Text(display, style = style, color = color, fontWeight = fontWeight)
 }
 
-@Composable
-fun DateField(
-    label: String,
-    dateMillis: Long?,
-    onDateSelected: (Long) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var showPicker by remember { mutableStateOf(false) }
-    val displayDate = dateMillis?.let { com.investtrack.utils.DateUtils.run { it.toDisplayDate() } } ?: "Select Date"
-
-    OutlinedTextField(
-        value = displayDate,
-        onValueChange = {},
-        readOnly = true,
-        label = { Text(label, style = MaterialTheme.typography.labelLarge) },
-        trailingIcon = {
-            Icon(
-                Icons.Default.CalendarToday,
-                null,
-                modifier = Modifier.clickable { showPicker = true },
-                tint = MaterialTheme.colorScheme.primary
-            )
-        },
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-        )
-    )
-    if (showPicker) {
-        DatePickerDialog(
-            onDateSelected = { onDateSelected(it); showPicker = false },
-            onDismiss = { showPicker = false }
-        )
-    }
+fun formatAmount(amount: Double): String = when {
+    amount >= 1_00_00_000 -> "₹${"%.2f".format(amount / 1_00_00_000)} Cr"
+    amount >= 1_00_000    -> "₹${"%.2f".format(amount / 1_00_000)} L"
+    amount >= 1_000       -> "₹${"%.1f".format(amount / 1_000)} K"
+    else                  -> "₹${"%.0f".format(amount)}"
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DatePickerDialog(onDateSelected: (Long) -> Unit, onDismiss: () -> Unit) {
-    val state = rememberDatePickerState()
-    androidx.compose.material3.DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = { state.selectedDateMillis?.let { onDateSelected(it) }; onDismiss() }) {
-                Text("OK", fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
-    ) {
-        DatePicker(state = state)
-    }
-}
-
+// ─── Top Bar ──────────────────────────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBarWithBack(title: String, onBack: () -> Unit, actions: @Composable RowScope.() -> Unit = {}) {
     TopAppBar(
-        title = { Text(title, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge) },
+        title = { Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
         navigationIcon = {
             IconButton(onClick = onBack) {
-                Icon(
-                    Icons.Default.ArrowBack,
-                    "Back",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
+                Icon(Icons.Default.ArrowBack, "Back")
             }
         },
         actions = actions,
@@ -252,41 +141,186 @@ fun TopBarWithBack(title: String, onBack: () -> Unit, actions: @Composable RowSc
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EmptyState(
-    message: String,
-    icon: @Composable () -> Unit = {
-        Icon(
-            Icons.Default.Inbox,
-            null,
-            modifier = Modifier.size(72.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-        )
-    }
+fun AppTopBar(title: String, actions: @Composable RowScope.() -> Unit = {}) {
+    TopAppBar(
+        title = { Text(title, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge) },
+        actions = actions,
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+    )
+}
+
+// ─── Input Fields ─────────────────────────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun InputField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    readOnly: Boolean = false,
+    trailingIcon: @Composable (() -> Unit)? = null,
+    isError: Boolean = false,
+    errorText: String = "",
+    singleLine: Boolean = true
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        icon()
-        Spacer(Modifier.height(20.dp))
-        Text(
-            message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+    Column(modifier = modifier) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            singleLine = singleLine,
+            readOnly = readOnly,
+            trailingIcon = trailingIcon,
+            isError = isError,
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = keyboardType),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            )
         )
+        if (isError && errorText.isNotEmpty()) {
+            Text(errorText, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 8.dp, top = 2.dp))
+        }
     }
 }
 
+// ─── Dropdown Field ───────────────────────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun <T> DropdownField(
+    label: String,
+    options: List<T>,
+    selected: T?,
+    onSelect: (T) -> Unit,
+    displayText: (T) -> String,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }, modifier = modifier) {
+        OutlinedTextField(
+            value = selected?.let { displayText(it) } ?: "",
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            )
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { opt ->
+                DropdownMenuItem(
+                    text = { Text(displayText(opt)) },
+                    onClick = { onSelect(opt); expanded = false }
+                )
+            }
+        }
+    }
+}
+
+// ─── Date Field ───────────────────────────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DateField(label: String, value: Long, onValueChange: (Long) -> Unit, modifier: Modifier = Modifier) {
+    var showPicker by remember { mutableStateOf(false) }
+    OutlinedTextField(
+        value = DateUtils.toDisplayDate(value),
+        onValueChange = {},
+        readOnly = true,
+        label = { Text(label) },
+        trailingIcon = { Icon(Icons.Default.CalendarToday, null, modifier = Modifier.clickable { showPicker = true }) },
+        modifier = modifier.fillMaxWidth().clickable { showPicker = true },
+        shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+        )
+    )
+    if (showPicker) {
+        val cal = remember(value) { Calendar.getInstance().also { it.timeInMillis = value } }
+        val state = rememberDatePickerState(initialSelectedDateMillis = value)
+        DatePickerDialog(
+            onDismissRequest = { showPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.selectedDateMillis?.let { onValueChange(it) }
+                    showPicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = { showPicker = false }) { Text("Cancel") } }
+        ) { DatePicker(state = state) }
+    }
+}
+
+// ─── Pill Chip ────────────────────────────────────────────────────────────────
 @Composable
 fun PillChip(text: String, color: Color, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(50))
+            .clip(RoundedCornerShape(50.dp))
             .background(color.copy(alpha = 0.15f))
             .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
-        Text(text, color = color, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.3.sp)
+        Text(text, style = MaterialTheme.typography.labelSmall, color = color, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+// ─── Empty State ──────────────────────────────────────────────────────────────
+@Composable
+fun EmptyState(message: String, icon: ImageVector = Icons.Default.Inbox) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.4f), modifier = Modifier.size(56.dp))
+        Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+    }
+}
+
+// ─── Gain/Loss Badge ──────────────────────────────────────────────────────────
+@Composable
+fun GainLossBadge(percent: Double) {
+    val isGain = percent >= 0
+    val color = if (isGain) GainColor else LossColor
+    val sign = if (isGain) "▲" else "▼"
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(color.copy(alpha = 0.15f))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text("$sign ${"%.2f".format(percent)}%", style = MaterialTheme.typography.labelSmall, color = color, fontWeight = FontWeight.Bold)
+    }
+}
+
+// ─── Info Row ─────────────────────────────────────────────────────────────────
+@Composable
+fun InfoRow(label: String, value: String, valueColor: Color = MaterialTheme.colorScheme.onSurface) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = valueColor)
+    }
+}
+
+// ─── Icon Badge ───────────────────────────────────────────────────────────────
+@Composable
+fun IconBadge(icon: ImageVector, color: Color, size: Dp = 42.dp) {
+    Box(
+        modifier = Modifier.size(size).clip(RoundedCornerShape(size * 0.3f)).background(color.copy(0.15f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, null, tint = color, modifier = Modifier.size(size * 0.5f))
     }
 }

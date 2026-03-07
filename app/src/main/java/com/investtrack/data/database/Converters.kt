@@ -1,14 +1,7 @@
 package com.investtrack.data.database
 
 import androidx.room.TypeConverter
-import com.investtrack.data.database.entities.SecurityType
-import com.investtrack.data.database.entities.AssetClass
-import com.investtrack.data.database.entities.MFSchemeType
-import com.investtrack.data.database.entities.TransactionType
-import com.investtrack.data.database.entities.LoanType
-import com.investtrack.data.database.entities.CouponFrequency
-import com.investtrack.data.database.entities.InsuranceType
-import com.investtrack.data.database.entities.Relationship
+import com.investtrack.data.database.entities.*
 
 class Converters {
     @TypeConverter fun fromSecurityType(v: SecurityType) = v.name

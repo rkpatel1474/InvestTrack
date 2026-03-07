@@ -1,43 +1,14 @@
 package com.investtrack.ui.security
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Card
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -46,256 +17,310 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.investtrack.data.database.entities.AssetClass
-import com.investtrack.data.database.entities.CouponFrequency
-import com.investtrack.data.database.entities.InsuranceType
-import com.investtrack.data.database.entities.MFSchemeType
-import com.investtrack.data.database.entities.SecurityMaster
-import com.investtrack.data.database.entities.SecurityType
+import com.investtrack.data.database.entities.*
 import com.investtrack.data.repository.SecurityRepository
-import com.investtrack.ui.common.DateField
-import com.investtrack.ui.common.DropdownField
-import com.investtrack.ui.common.EmptyState
-import com.investtrack.ui.common.InputField
-import com.investtrack.ui.common.PillChip
-import com.investtrack.ui.common.TopBarWithBack
-import com.investtrack.ui.dashboard.securityTypeIcon
+import com.investtrack.ui.common.*
+import com.investtrack.ui.theme.LossColor
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class SecurityViewModel @Inject constructor(private val repo: SecurityRepository) : ViewModel() {
-    val allSecurities = repo.getAllSecurities().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    private val _filterType = MutableStateFlow<SecurityType?>(null)
-    val filterType: StateFlow<SecurityType?> = _filterType
+    val allSecurities = repo.getAllSecurities()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val filteredSecurities = combine(allSecurities, _filterType) { list, type ->
-        if (type == null) list else list.filter { it.securityType == type }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    fun setFilter(type: SecurityType?) { _filterType.value = type }
-    suspend fun getSecurity(id: Long) = repo.getSecurityById(id)
-    fun saveSecurity(security: SecurityMaster, onDone: () -> Unit) {
-        viewModelScope.launch {
-            if (security.id == 0L) repo.insertSecurity(security) else repo.updateSecurity(security)
-            onDone()
-        }
+    fun getById(id: Long, cb: (SecurityMaster?) -> Unit) = viewModelScope.launch { cb(repo.getSecurityById(id)) }
+    fun save(s: SecurityMaster, onDone: () -> Unit) = viewModelScope.launch {
+        if (s.id == 0L) repo.insertSecurity(s) else repo.updateSecurity(s)
+        onDone()
     }
-    fun deleteSecurity(id: Long) = viewModelScope.launch { repo.deleteSecurity(id) }
+    fun delete(id: Long) = viewModelScope.launch { repo.deleteSecurity(id) }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecurityListScreen(onAddSecurity: () -> Unit, onEditSecurity: (Long) -> Unit, onBack: () -> Unit, vm: SecurityViewModel = hiltViewModel()) {
-    val securities by vm.filteredSecurities.collectAsState()
-    val filterType by vm.filterType.collectAsState()
+    val securities by vm.allSecurities.collectAsState()
+    var search by remember { mutableStateOf("") }
+    val filtered = securities.filter { search.isEmpty() || it.securityName.contains(search, true) || it.securityCode.contains(search, true) }
+
     Scaffold(
-        topBar = { TopBarWithBack("Security Master", onBack) { IconButton(onClick = onAddSecurity) { Icon(Icons.Default.Add, "Add") } } },
-        floatingActionButton = { FloatingActionButton(onClick = onAddSecurity) { Icon(Icons.Default.Add, null) } }
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                item { FilterChip(selected = filterType == null, onClick = { vm.setFilter(null) }, label = { Text("All") }) }
-                items(SecurityType.values()) { type ->
-                    FilterChip(selected = filterType == type, onClick = { vm.setFilter(if (filterType == type) null else type) }, label = { Text(type.name.replace("_", " ")) })
-                }
+        topBar = { TopBarWithBack("Security Master", onBack) },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddSecurity, containerColor = MaterialTheme.colorScheme.primary) {
+                Icon(Icons.Default.Add, "Add")
             }
-            LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (securities.isEmpty()) item { EmptyState("No securities found. Tap + to add one.") }
-                items(securities) { sec ->
-                    SecurityCard(sec, onEdit = { onEditSecurity(sec.id) }, onDelete = { vm.deleteSecurity(sec.id) })
-                }
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            item {
+                OutlinedTextField(
+                    value = search, onValueChange = { search = it },
+                    placeholder = { Text("Search security...") },
+                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = MaterialTheme.colorScheme.outline)
+                )
+            }
+            if (filtered.isEmpty()) item { EmptyState("No securities found.", Icons.Default.Shield) }
+            items(filtered, key = { it.id }) { s ->
+                SecurityCard(s, onEdit = { onEditSecurity(s.id) }, onDelete = { vm.delete(s.id) })
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecurityCard(sec: SecurityMaster, onEdit: () -> Unit, onDelete: () -> Unit) {
-    var showDelete by remember { mutableStateOf(false) }
-    Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(44.dp)) {
-                Box(contentAlignment = Alignment.Center) { Icon(securityTypeIcon(sec.securityType), null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp)) }
-            }
+    var showConfirm by remember { mutableStateOf(false) }
+    Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconBadge(Icons.Default.BarChart, securityTypeColor(sec.securityType))
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(sec.securityName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text(sec.securityCode, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(sec.securityName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    PillChip(sec.securityType.name.replace("_", " "), MaterialTheme.colorScheme.primary)
-                    PillChip(sec.assetClass.name, MaterialTheme.colorScheme.secondary)
+                    PillChip(sec.securityType.name.replace("_"," "), securityTypeColor(sec.securityType))
+                    if (sec.securityCode.isNotEmpty()) Text(sec.securityCode, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                if (sec.amcName.isNotEmpty()) Text(sec.amcName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, "Edit") }
-            IconButton(onClick = { showDelete = true }) { Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error) }
+            IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) }
+            IconButton(onClick = { showConfirm = true }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Delete, null, tint = LossColor, modifier = Modifier.size(18.dp)) }
         }
     }
-    if (showDelete) {
-        AlertDialog(onDismissRequest = { showDelete = false },
-            title = { Text("Delete Security") }, text = { Text("Delete ${sec.securityName}?") },
-            confirmButton = { TextButton(onClick = { onDelete(); showDelete = false }) { Text("Delete", color = MaterialTheme.colorScheme.error) } },
-            dismissButton = { TextButton(onClick = { showDelete = false }) { Text("Cancel") } })
-    }
+    if (showConfirm) AlertDialog(onDismissRequest = { showConfirm = false },
+        title = { Text("Delete Security") }, text = { Text("Delete ${sec.securityName}? Transactions will be affected.") },
+        confirmButton = { TextButton(onClick = { onDelete(); showConfirm = false }) { Text("Delete", color = LossColor) } },
+        dismissButton = { TextButton(onClick = { showConfirm = false }) { Text("Cancel") } })
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddEditSecurityScreen(securityId: Long?, onBack: () -> Unit, vm: SecurityViewModel = hiltViewModel()) {
-    var securityCode by remember { mutableStateOf("") }
-    var securityName by remember { mutableStateOf("") }
-    var securityType by remember { mutableStateOf(SecurityType.MUTUAL_FUND) }
+fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: SecurityViewModel = hiltViewModel()) {
+    var name by remember { mutableStateOf("") }
+    var code by remember { mutableStateOf("") }
+    var type by remember { mutableStateOf(SecurityType.MUTUAL_FUND) }
     var assetClass by remember { mutableStateOf(AssetClass.EQUITY) }
-    var schemeType by remember { mutableStateOf<MFSchemeType?>(null) }
-    var amcName by remember { mutableStateOf("") }
-    var isinCode by remember { mutableStateOf("") }
+    var isin by remember { mutableStateOf("") }
+    var amc by remember { mutableStateOf("") }
+    var schemeType by remember { mutableStateOf(MFSchemeType.OTHER) }
+    var exitLoad by remember { mutableStateOf("") }
+    var expenseRatio by remember { mutableStateOf("") }
     var couponRate by remember { mutableStateOf("") }
-    var couponFrequency by remember { mutableStateOf<CouponFrequency?>(null) }
-    var firstCouponDate by remember { mutableStateOf<Long?>(null) }
+    var couponFreq by remember { mutableStateOf(CouponFrequency.ANNUALLY) }
     var maturityDate by remember { mutableStateOf<Long?>(null) }
     var faceValue by remember { mutableStateOf("") }
-    var npsSubType by remember { mutableStateOf("") }
-    var pfAccountNumber by remember { mutableStateOf("") }
-    var fdInterestRate by remember { mutableStateOf("") }
+    var creditRating by remember { mutableStateOf("") }
+    var interestRate by remember { mutableStateOf("") }
     var fdTenure by remember { mutableStateOf("") }
-    var insuranceType by remember { mutableStateOf<InsuranceType?>(null) }
-    var premiumFrequency by remember { mutableStateOf<CouponFrequency?>(null) }
+    var pfAccountNo by remember { mutableStateOf("") }
+    var uanNumber by remember { mutableStateOf("") }
+    var insType by remember { mutableStateOf(InsuranceType.TERM) }
     var sumAssured by remember { mutableStateOf("") }
-    var policyTerm by remember { mutableStateOf("") }
-    var premiumTerm by remember { mutableStateOf("") }
-    var policyNumber by remember { mutableStateOf("") }
+    var policyNo by remember { mutableStateOf("") }
     var insurerName by remember { mutableStateOf("") }
+    var policyTerm by remember { mutableStateOf("") }
+    var premTerm by remember { mutableStateOf("") }
+    var premFreq by remember { mutableStateOf(CouponFrequency.ANNUALLY) }
     var propertyAddress by remember { mutableStateOf("") }
     var propertyType by remember { mutableStateOf("") }
+    var carpetArea by remember { mutableStateOf("") }
+    var goldPurity by remember { mutableStateOf("") }
+    var goldForm by remember { mutableStateOf("") }
+    var cryptoSymbol by remember { mutableStateOf("") }
 
-    LaunchedEffect(securityId) {
-        securityId?.let { id ->
-            vm.getSecurity(id)?.let { s ->
-                securityCode = s.securityCode; securityName = s.securityName; securityType = s.securityType
-                assetClass = s.assetClass; schemeType = s.schemeType; amcName = s.amcName; isinCode = s.isinCode
-                couponRate = s.couponRate?.toString() ?: ""; couponFrequency = s.couponFrequency
-                firstCouponDate = s.firstCouponDate; maturityDate = s.maturityDate; faceValue = s.faceValue?.toString() ?: ""
-                npsSubType = s.npsSubType; pfAccountNumber = s.pfAccountNumber
-                fdInterestRate = s.interestRate?.toString() ?: ""; fdTenure = s.fdTenureMonths?.toString() ?: ""
-                insuranceType = s.insuranceType; premiumFrequency = s.premiumFrequency
-                sumAssured = s.sumAssured?.toString() ?: ""; policyTerm = s.policyTerm?.toString() ?: ""
-                premiumTerm = s.premiumTerm?.toString() ?: ""; policyNumber = s.policyNumber; insurerName = s.insurerName
-                propertyAddress = s.propertyAddress; propertyType = s.propertyType
+    LaunchedEffect(editSecurityId) {
+        editSecurityId?.let { id ->
+            vm.getById(id) { s ->
+                s?.let {
+                    name = it.securityName; code = it.securityCode; type = it.securityType
+                    assetClass = it.assetClass; isin = it.isinCode; amc = it.amcName
+                    schemeType = it.schemeType ?: MFSchemeType.OTHER
+                    exitLoad = it.exitLoadPercent?.toString() ?: ""; expenseRatio = it.expenseRatio?.toString() ?: ""
+                    couponRate = it.couponRate?.toString() ?: ""
+                    couponFreq = it.couponFrequency ?: CouponFrequency.ANNUALLY
+                    faceValue = it.faceValue?.toString() ?: ""; creditRating = it.creditRating
+                    interestRate = it.interestRate?.toString() ?: ""; fdTenure = it.fdTenureMonths?.toString() ?: ""
+                    pfAccountNo = it.pfAccountNumber; uanNumber = it.uanNumber
+                    insType = it.insuranceType ?: InsuranceType.TERM
+                    sumAssured = it.sumAssured?.toString() ?: ""; policyNo = it.policyNumber; insurerName = it.insurerName
+                    policyTerm = it.policyTerm?.toString() ?: ""; premTerm = it.premiumTerm?.toString() ?: ""
+                    premFreq = it.premiumFrequency ?: CouponFrequency.ANNUALLY
+                    propertyAddress = it.propertyAddress; propertyType = it.propertyType
+                    carpetArea = it.carpetArea?.toString() ?: ""
+                    goldPurity = it.goldPurity; goldForm = it.goldForm; cryptoSymbol = it.cryptoSymbol
+                    maturityDate = it.maturityDate
+                }
             }
         }
     }
 
     Scaffold(
-        topBar = { TopBarWithBack(if (securityId != null) "Edit Security" else "Add Security", onBack) },
+        topBar = { TopBarWithBack(if (editSecurityId != null) "Edit Security" else "Add Security", onBack) },
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            Surface(shadowElevation = 8.dp) {
-                androidx.compose.material3.Button(
+            Surface(shadowElevation = 8.dp, color = MaterialTheme.colorScheme.background) {
+                Button(
                     onClick = {
-                        val sec = SecurityMaster(id = securityId ?: 0L, securityCode = securityCode, securityName = securityName, securityType = securityType, assetClass = assetClass, schemeType = schemeType, amcName = amcName, isinCode = isinCode, couponRate = couponRate.toDoubleOrNull(), couponFrequency = couponFrequency, firstCouponDate = firstCouponDate, maturityDate = maturityDate, faceValue = faceValue.toDoubleOrNull(), npsSubType = npsSubType, pfAccountNumber = pfAccountNumber, interestRate = fdInterestRate.toDoubleOrNull(), fdTenureMonths = fdTenure.toIntOrNull(), insuranceType = insuranceType, premiumFrequency = premiumFrequency, sumAssured = sumAssured.toDoubleOrNull(), policyTerm = policyTerm.toIntOrNull(), premiumTerm = premiumTerm.toIntOrNull(), policyNumber = policyNumber, insurerName = insurerName, propertyAddress = propertyAddress, propertyType = propertyType)
-                        vm.saveSecurity(sec) { onBack() }
+                        val s = SecurityMaster(
+                            id = editSecurityId ?: 0L, securityName = name.trim(), securityCode = code.trim(),
+                            securityType = type, assetClass = assetClass, isinCode = isin.trim(), amcName = amc.trim(),
+                            schemeType = if (type == SecurityType.MUTUAL_FUND) schemeType else null,
+                            exitLoadPercent = exitLoad.toDoubleOrNull(), expenseRatio = expenseRatio.toDoubleOrNull(),
+                            couponRate = couponRate.toDoubleOrNull(), couponFrequency = if (couponRate.isNotEmpty()) couponFreq else null,
+                            maturityDate = maturityDate, faceValue = faceValue.toDoubleOrNull(), creditRating = creditRating,
+                            interestRate = interestRate.toDoubleOrNull(), fdTenureMonths = fdTenure.toIntOrNull(),
+                            pfAccountNumber = pfAccountNo, uanNumber = uanNumber,
+                            insuranceType = if (type == SecurityType.INSURANCE) insType else null,
+                            sumAssured = sumAssured.toDoubleOrNull(), policyNumber = policyNo, insurerName = insurerName,
+                            policyTerm = policyTerm.toIntOrNull(), premiumTerm = premTerm.toIntOrNull(),
+                            premiumFrequency = if (type == SecurityType.INSURANCE) premFreq else null,
+                            propertyAddress = propertyAddress, propertyType = propertyType,
+                            carpetArea = carpetArea.toDoubleOrNull(),
+                            goldPurity = goldPurity, goldForm = goldForm, cryptoSymbol = cryptoSymbol
+                        )
+                        vm.save(s) { onBack() }
                     },
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    enabled = securityCode.isNotBlank() && securityName.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth().padding(16.dp), enabled = name.isNotBlank() && code.isNotBlank(),
                     shape = RoundedCornerShape(12.dp)
-                ) { Text(if (securityId != null) "Update Security" else "Save Security") }
+                ) { Text(if (editSecurityId != null) "Update" else "Save") }
             }
         }
     ) { padding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
-                Card(shape = RoundedCornerShape(16.dp)) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("Basic Information", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        DropdownField("Security Type *", SecurityType.values().toList(), securityType, { securityType = it; assetClass = when (it) { SecurityType.MUTUAL_FUND, SecurityType.SHARES -> AssetClass.EQUITY; SecurityType.BOND, SecurityType.GOI_BOND, SecurityType.FD -> AssetClass.DEBT; SecurityType.PROPERTY -> AssetClass.REAL_ESTATE; SecurityType.GOLD -> AssetClass.GOLD; else -> AssetClass.OTHER } }, { it.name.replace("_", " ") })
-                        InputField("Security Code *", securityCode, { securityCode = it.uppercase() })
-                        InputField("Security Name *", securityName, { securityName = it })
-                        DropdownField("Asset Class", AssetClass.values().toList(), assetClass, { assetClass = it }, { it.name.replace("_", " ") })
+                FormCard("Basic Details") {
+                    InputField("Security Name *", name, { name = it })
+                    InputField("Security Code *", code, { code = it.uppercase() })
+                    DropdownField("Type *", SecurityType.values().toList(), type, { type = it; assetClass = defaultAssetClass(it) }, { it.name.replace("_"," ") })
+                    DropdownField("Asset Class", AssetClass.values().toList(), assetClass, { assetClass = it }, { it.name.replace("_"," ") })
+                    InputField("ISIN Code", isin, { isin = it.uppercase() })
+                }
+            }
+
+            // Type-specific fields
+            if (type == SecurityType.MUTUAL_FUND) {
+                item {
+                    FormCard("Mutual Fund Details") {
+                        InputField("AMC Name", amc, { amc = it })
+                        DropdownField("Scheme Type", MFSchemeType.values().toList(), schemeType, { schemeType = it }, { it.name.replace("_"," ") })
+                        InputField("Exit Load (%)", exitLoad, { exitLoad = it }, keyboardType = KeyboardType.Decimal)
+                        InputField("Expense Ratio (%)", expenseRatio, { expenseRatio = it }, keyboardType = KeyboardType.Decimal)
                     }
                 }
             }
-            when (securityType) {
-                SecurityType.MUTUAL_FUND -> item {
-                    Card(shape = RoundedCornerShape(16.dp)) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("Mutual Fund Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            DropdownField("Scheme Type", MFSchemeType.values().toList(), schemeType, { schemeType = it }, { it.name.replace("_", " ") })
-                            InputField("AMC Name", amcName, { amcName = it })
-                            InputField("ISIN Code", isinCode, { isinCode = it.uppercase() })
-                        }
+            if (type in listOf(SecurityType.BOND, SecurityType.GOI_BOND)) {
+                item {
+                    FormCard("Bond Details") {
+                        InputField("Coupon Rate (%)", couponRate, { couponRate = it }, keyboardType = KeyboardType.Decimal)
+                        DropdownField("Coupon Frequency", CouponFrequency.values().toList(), couponFreq, { couponFreq = it }, { it.name.replace("_"," ") })
+                        InputField("Face Value (₹)", faceValue, { faceValue = it }, keyboardType = KeyboardType.Decimal)
+                        InputField("Credit Rating", creditRating, { creditRating = it.uppercase() })
+                        maturityDate?.let { DateField("Maturity Date", it, { d -> maturityDate = d }) }
+                            ?: OutlinedButton(onClick = { maturityDate = System.currentTimeMillis() }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("Set Maturity Date") }
                     }
                 }
-                SecurityType.BOND, SecurityType.GOI_BOND -> item {
-                    Card(shape = RoundedCornerShape(16.dp)) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("Bond Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            InputField("Face Value", faceValue, { faceValue = it }, keyboardType = KeyboardType.Decimal)
-                            InputField("Coupon Rate (%)", couponRate, { couponRate = it }, keyboardType = KeyboardType.Decimal)
-                            DropdownField("Coupon Frequency", CouponFrequency.values().toList(), couponFrequency, { couponFrequency = it }, { it.name.replace("_", " ") })
-                            DateField("First Coupon Date", firstCouponDate, { firstCouponDate = it })
-                            DateField("Maturity Date", maturityDate, { maturityDate = it })
-                        }
-                    }
-                }
-                SecurityType.NPS -> item {
-                    Card(shape = RoundedCornerShape(16.dp)) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("NPS Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            InputField("Account / PRAN", npsSubType, { npsSubType = it })
-                            InputField("Fund Manager / Tier", pfAccountNumber, { pfAccountNumber = it })
-                        }
-                    }
-                }
-                SecurityType.PF -> item {
-                    Card(shape = RoundedCornerShape(16.dp)) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("PF Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            InputField("UAN / Account No", pfAccountNumber, { pfAccountNumber = it })
-                        }
-                    }
-                }
-                SecurityType.FD -> item {
-                    Card(shape = RoundedCornerShape(16.dp)) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("FD Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            InputField("Interest Rate (%)", fdInterestRate, { fdInterestRate = it }, keyboardType = KeyboardType.Decimal)
-                            InputField("Tenure (Months)", fdTenure, { fdTenure = it }, keyboardType = KeyboardType.Number)
-                            DateField("Maturity Date", maturityDate, { maturityDate = it })
-                        }
-                    }
-                }
-                SecurityType.INSURANCE -> item {
-                    Card(shape = RoundedCornerShape(16.dp)) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("Insurance Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            DropdownField("Insurance Type", InsuranceType.values().toList(), insuranceType, { insuranceType = it }, { it.name.replace("_", " ") })
-                            InputField("Policy Number", policyNumber, { policyNumber = it })
-                            InputField("Insurer Name", insurerName, { insurerName = it })
-                            InputField("Sum Assured (₹)", sumAssured, { sumAssured = it }, keyboardType = KeyboardType.Decimal)
-                            InputField("Policy Term (Years)", policyTerm, { policyTerm = it }, keyboardType = KeyboardType.Number)
-                            InputField("Premium Paying Term (Years)", premiumTerm, { premiumTerm = it }, keyboardType = KeyboardType.Number)
-                            DropdownField("Premium Frequency", CouponFrequency.values().toList(), premiumFrequency, { premiumFrequency = it }, { it.name.replace("_", " ") })
-                            DateField("Maturity Date", maturityDate, { maturityDate = it })
-                        }
-                    }
-                }
-                SecurityType.PROPERTY -> item {
-                    Card(shape = RoundedCornerShape(16.dp)) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("Property Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            InputField("Property Address", propertyAddress, { propertyAddress = it })
-                            InputField("Property Type (Residential/Commercial/Plot)", propertyType, { propertyType = it })
-                        }
-                    }
-                }
-                else -> {}
             }
+            if (type == SecurityType.FD) {
+                item {
+                    FormCard("FD Details") {
+                        InputField("Interest Rate (%)", interestRate, { interestRate = it }, keyboardType = KeyboardType.Decimal)
+                        InputField("Tenure (months)", fdTenure, { fdTenure = it }, keyboardType = KeyboardType.Number)
+                        maturityDate?.let { DateField("Maturity Date", it, { d -> maturityDate = d }) }
+                            ?: OutlinedButton(onClick = { maturityDate = System.currentTimeMillis() }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("Set Maturity Date") }
+                    }
+                }
+            }
+            if (type in listOf(SecurityType.NPS, SecurityType.PF)) {
+                item {
+                    FormCard("NPS / PF Details") {
+                        InputField("Account Number", pfAccountNo, { pfAccountNo = it })
+                        if (type == SecurityType.PF) InputField("UAN Number", uanNumber, { uanNumber = it })
+                    }
+                }
+            }
+            if (type == SecurityType.INSURANCE) {
+                item {
+                    FormCard("Insurance Details") {
+                        DropdownField("Insurance Type", InsuranceType.values().toList(), insType, { insType = it }, { it.name })
+                        InputField("Insurer Name", insurerName, { insurerName = it })
+                        InputField("Policy Number", policyNo, { policyNo = it })
+                        InputField("Sum Assured (₹)", sumAssured, { sumAssured = it }, keyboardType = KeyboardType.Decimal)
+                        InputField("Policy Term (years)", policyTerm, { policyTerm = it }, keyboardType = KeyboardType.Number)
+                        InputField("Premium Term (years)", premTerm, { premTerm = it }, keyboardType = KeyboardType.Number)
+                        DropdownField("Premium Frequency", CouponFrequency.values().toList(), premFreq, { premFreq = it }, { it.name.replace("_"," ") })
+                    }
+                }
+            }
+            if (type == SecurityType.PROPERTY) {
+                item {
+                    FormCard("Property Details") {
+                        InputField("Property Type", propertyType, { propertyType = it })
+                        InputField("Address", propertyAddress, { propertyAddress = it }, singleLine = false)
+                        InputField("Carpet Area (sq ft)", carpetArea, { carpetArea = it }, keyboardType = KeyboardType.Decimal)
+                    }
+                }
+            }
+            if (type == SecurityType.GOLD) {
+                item {
+                    FormCard("Gold Details") {
+                        InputField("Purity (e.g. 24K, 22K)", goldPurity, { goldPurity = it })
+                        InputField("Form (Coin/Bar/Jewellery/SGB)", goldForm, { goldForm = it })
+                    }
+                }
+            }
+            if (type == SecurityType.CRYPTO) {
+                item {
+                    FormCard("Crypto Details") {
+                        InputField("Symbol (e.g. BTC, ETH)", cryptoSymbol, { cryptoSymbol = it.uppercase() })
+                    }
+                }
+            }
+        }
+    }
+}
+
+fun defaultAssetClass(type: SecurityType) = when (type) {
+    SecurityType.MUTUAL_FUND -> AssetClass.EQUITY
+    SecurityType.SHARES -> AssetClass.EQUITY
+    SecurityType.BOND, SecurityType.GOI_BOND -> AssetClass.DEBT
+    SecurityType.NPS -> AssetClass.HYBRID
+    SecurityType.PF -> AssetClass.DEBT
+    SecurityType.FD -> AssetClass.DEBT
+    SecurityType.INSURANCE -> AssetClass.OTHER
+    SecurityType.PROPERTY -> AssetClass.REAL_ESTATE
+    SecurityType.GOLD -> AssetClass.GOLD
+    SecurityType.CRYPTO -> AssetClass.COMMODITY
+    SecurityType.OTHER -> AssetClass.OTHER
+}
+
+fun securityTypeColor(type: SecurityType) = when (type) {
+    SecurityType.MUTUAL_FUND -> androidx.compose.ui.graphics.Color(0xFF4A90E2)
+    SecurityType.SHARES      -> androidx.compose.ui.graphics.Color(0xFF00C896)
+    SecurityType.BOND        -> androidx.compose.ui.graphics.Color(0xFF9B59B6)
+    SecurityType.GOI_BOND    -> androidx.compose.ui.graphics.Color(0xFF1ABC9C)
+    SecurityType.NPS         -> androidx.compose.ui.graphics.Color(0xFFE67E22)
+    SecurityType.PF          -> androidx.compose.ui.graphics.Color(0xFF3498DB)
+    SecurityType.FD          -> androidx.compose.ui.graphics.Color(0xFFFFAB00)
+    SecurityType.INSURANCE   -> androidx.compose.ui.graphics.Color(0xFFE74C3C)
+    SecurityType.PROPERTY    -> androidx.compose.ui.graphics.Color(0xFF795548)
+    SecurityType.GOLD        -> androidx.compose.ui.graphics.Color(0xFFFFBF00)
+    SecurityType.CRYPTO      -> androidx.compose.ui.graphics.Color(0xFFFF6B35)
+    SecurityType.OTHER       -> androidx.compose.ui.graphics.Color(0xFF95A5A6)
+}
+
+@Composable
+private fun FormCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            content()
         }
     }
 }

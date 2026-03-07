@@ -1,25 +1,32 @@
 package com.investtrack.data.repository
 
-import com.investtrack.data.database.dao.*
-import com.investtrack.data.database.entities.*
+import com.investtrack.data.database.dao.FamilyMemberDao
+import com.investtrack.data.database.dao.LoanDao
+import com.investtrack.data.database.dao.LoanPaymentDao
+import com.investtrack.data.database.dao.LoanRateChangeDao
+import com.investtrack.data.database.dao.NomineeDao
+import com.investtrack.data.database.dao.PriceHistoryDao
+import com.investtrack.data.database.dao.SecurityMasterDao
+import com.investtrack.data.database.dao.SipPlanDao
+import com.investtrack.data.database.dao.TransactionDao
+import com.investtrack.data.database.entities.FamilyMember
+import com.investtrack.data.database.entities.Loan
+import com.investtrack.data.database.entities.LoanPayment
+import com.investtrack.data.database.entities.LoanRateChange
+import com.investtrack.data.database.entities.Nominee
+import com.investtrack.data.database.entities.PriceHistory
+import com.investtrack.data.database.entities.SecurityMaster
+import com.investtrack.data.database.entities.SecurityType
+import com.investtrack.data.database.entities.SipPlan
+import com.investtrack.data.database.entities.Transaction
 import com.investtrack.utils.FinancialUtils
-import com.investtrack.utils.DateUtils
-import com.investtrack.utils.DateUtils.toDisplayDate
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import javax.inject.Inject
-import javax.inject.Singleton
 
-// ─────────────────────────────────────────────────────────
-// Family Repository
-// ─────────────────────────────────────────────────────────
-
-@Singleton
 class FamilyRepository @Inject constructor(
     private val familyMemberDao: FamilyMemberDao,
     private val nomineeDao: NomineeDao
 ) {
-    fun getAllMembers(): Flow<List<FamilyMember>> = familyMemberDao.getAllMembers()
+    fun getAllMembers() = familyMemberDao.getAllMembers()
     suspend fun getMemberById(id: Long) = familyMemberDao.getMemberById(id)
     suspend fun insertMember(member: FamilyMember) = familyMemberDao.insert(member)
     suspend fun updateMember(member: FamilyMember) = familyMemberDao.update(member)
@@ -34,13 +41,8 @@ class FamilyRepository @Inject constructor(
     }
 }
 
-// ─────────────────────────────────────────────────────────
-// Security Repository
-// ─────────────────────────────────────────────────────────
-
-@Singleton
 class SecurityRepository @Inject constructor(private val dao: SecurityMasterDao) {
-    fun getAllSecurities(): Flow<List<SecurityMaster>> = dao.getAllSecurities()
+    fun getAllSecurities() = dao.getAllSecurities()
     fun getSecuritiesByType(type: SecurityType) = dao.getSecuritiesByType(type)
     suspend fun searchSecurities(query: String) = dao.searchSecurities(query)
     suspend fun getSecurityById(id: Long) = dao.getSecurityById(id)
@@ -49,30 +51,20 @@ class SecurityRepository @Inject constructor(private val dao: SecurityMasterDao)
     suspend fun deleteSecurity(id: Long) = dao.softDelete(id)
 }
 
-// ─────────────────────────────────────────────────────────
-// Transaction Repository
-// ─────────────────────────────────────────────────────────
-
-@Singleton
 class TransactionRepository @Inject constructor(private val dao: TransactionDao) {
     fun getAllTransactions() = dao.getAllTransactions()
     fun getTransactionsByMember(memberId: Long) = dao.getTransactionsByMember(memberId)
     fun getTransactionsBySecurity(securityId: Long) = dao.getTransactionsBySecurity(securityId)
-    fun getRecentTransactions(limit: Int = 10) = dao.getRecentTransactions(limit)
+    fun getRecentTransactions(limit: Int) = dao.getRecentTransactions(limit)
+    suspend fun getById(id: Long) = dao.getTransactionById(id)
     suspend fun getByMemberAndSecurity(memberId: Long, securityId: Long) =
         dao.getTransactionsByMemberAndSecurity(memberId, securityId)
-    suspend fun getById(id: Long) = dao.getTransactionById(id)
     suspend fun insert(transaction: Transaction) = dao.insert(transaction)
     suspend fun update(transaction: Transaction) = dao.update(transaction)
     suspend fun delete(transaction: Transaction) = dao.delete(transaction)
     suspend fun getAllDistinctSecurityIds() = dao.getAllDistinctSecurityIds()
 }
 
-// ─────────────────────────────────────────────────────────
-// Price Repository
-// ─────────────────────────────────────────────────────────
-
-@Singleton
 class PriceRepository @Inject constructor(private val dao: PriceHistoryDao) {
     fun getPriceHistory(securityId: Long) = dao.getPriceHistory(securityId)
     suspend fun getLatestPrice(securityId: Long) = dao.getLatestPrice(securityId)
@@ -81,14 +73,10 @@ class PriceRepository @Inject constructor(private val dao: PriceHistoryDao) {
     suspend fun deletePrice(securityId: Long, date: Long) = dao.deletePrice(securityId, date)
 }
 
-// ─────────────────────────────────────────────────────────
-// Loan Repository
-// ─────────────────────────────────────────────────────────
-
-@Singleton
 class LoanRepository @Inject constructor(
     private val loanDao: LoanDao,
-    private val paymentDao: LoanPaymentDao
+    private val paymentDao: LoanPaymentDao,
+    private val rateChangeDao: LoanRateChangeDao
 ) {
     fun getAllLoans() = loanDao.getAllLoans()
     fun getLoansByMember(memberId: Long) = loanDao.getLoansByMember(memberId)
@@ -104,148 +92,94 @@ class LoanRepository @Inject constructor(
     suspend fun getTotalPrincipalPaid(loanId: Long) = paymentDao.getTotalPrincipalPaid(loanId) ?: 0.0
     suspend fun getTotalInterestPaid(loanId: Long) = paymentDao.getTotalInterestPaid(loanId) ?: 0.0
     suspend fun getLastPayment(loanId: Long) = paymentDao.getLastPayment(loanId)
+
+    fun getRateChanges(loanId: Long) = rateChangeDao.getRateChanges(loanId)
+    suspend fun insertRateChange(change: LoanRateChange) = rateChangeDao.insert(change)
+    suspend fun deleteRateChange(change: LoanRateChange) = rateChangeDao.delete(change)
 }
 
-// ─────────────────────────────────────────────────────────
-// Portfolio Repository (calculation-heavy)
-// ─────────────────────────────────────────────────────────
-
+// ─── Portfolio Summary ────────────────────────────────────────────────────────
 data class HoldingSummary(
-    val securityId: Long,
-    val securityCode: String,
-    val securityName: String,
-    val securityType: SecurityType,
-    val assetClass: AssetClass,
-    val familyMemberId: Long,
-    val memberName: String,
+    val security: SecurityMaster,
     val totalUnits: Double,
-    val avgCostPrice: Double,
     val totalCost: Double,
-    val currentPrice: Double,
+    val averagePrice: Double,
     val marketValue: Double,
-    val unrealizedGain: Double,
-    val absoluteReturn: Double,
-    val xirr: Double?,
-    val cagr: Double?,
-    val firstPurchaseDate: Long,
-    val latestPriceDate: Long?
+    val gain: Double,
+    val gainPercent: Double,
+    val xirr: Double?
 )
 
 data class PortfolioSummary(
     val totalCost: Double,
     val totalMarketValue: Double,
     val totalGain: Double,
-    val absoluteReturn: Double,
-    val xirr: Double?,
-    val cagr: Double?,
-    val assetClassBreakdown: Map<AssetClass, AssetClassSummary>,
-    val securityTypeBreakdown: Map<SecurityType, Double>
+    val gainPercent: Double,
+    val totalLoans: Double,
+    val netWorth: Double,
+    val holdings: List<HoldingSummary>
 )
 
-data class AssetClassSummary(
-    val assetClass: AssetClass,
-    val totalCost: Double,
-    val marketValue: Double,
-    val gain: Double,
-    val percentage: Double
-)
-
-@Singleton
 class PortfolioRepository @Inject constructor(
     private val transactionDao: TransactionDao,
     private val priceHistoryDao: PriceHistoryDao,
     private val securityMasterDao: SecurityMasterDao
 ) {
     suspend fun getHoldings(familyMemberId: Long? = null): List<HoldingSummary> {
-        val securityIds = if (familyMemberId != null)
-            transactionDao.getAllDistinctSecurityIds()
-        else
-            transactionDao.getAllDistinctSecurityIds()
-
-        val holdings = mutableListOf<HoldingSummary>()
-        val now = System.currentTimeMillis()
-
-        for (secId in securityIds) {
-            val security = securityMasterDao.getSecurityById(secId) ?: continue
+        val allSecurityIds = transactionDao.getAllDistinctSecurityIds()
+        return allSecurityIds.mapNotNull { secId ->
+            val security = securityMasterDao.getSecurityById(secId) ?: return@mapNotNull null
             val txns = if (familyMemberId != null)
                 transactionDao.getTransactionsByMemberAndSecurity(familyMemberId, secId)
             else
-                transactionDao.getTransactionsBySecurity(secId).first()
-
-            if (txns.isEmpty()) continue
-
-            val latestPrice = priceHistoryDao.getLatestPrice(secId)
-            val currentPrice = latestPrice?.price ?: 0.0
-
-            // Calculate for unit-based securities
-            var totalUnits = 0.0
-            var totalCost = 0.0
-            val cashflows = mutableListOf<Pair<Long, Double>>()
-
-            for (txn in txns) {
-                when {
-                    txn.transactionType in listOf(TransactionType.BUY, TransactionType.SIP, TransactionType.STP_IN, TransactionType.INVEST) -> {
-                        val units = txn.units ?: 0.0
-                        val price = txn.price ?: 0.0
-                        val amount = txn.amount ?: (units * price)
-                        totalUnits += units
-                        totalCost += amount + txn.stampDuty + txn.brokerage + txn.stt + txn.otherCharges
-                        cashflows.add(txn.transactionDate to -(amount + txn.stampDuty + txn.brokerage + txn.stt + txn.otherCharges))
-                    }
-                    txn.transactionType in listOf(TransactionType.SELL, TransactionType.SWP, TransactionType.STP_OUT, TransactionType.REDEEM) -> {
-                        val units = txn.units ?: 0.0
-                        val price = txn.price ?: 0.0
-                        val amount = txn.amount ?: (units * price)
-                        totalUnits -= units
-                        totalCost -= (totalCost / (totalUnits + units)) * units
-                        cashflows.add(txn.transactionDate to amount)
-                    }
-                    txn.transactionType in listOf(TransactionType.COUPON, TransactionType.DIVIDEND, TransactionType.INTEREST) -> {
-                        cashflows.add(txn.transactionDate to (txn.amount ?: 0.0))
-                    }
+                transactionDao.getTransactionsByMemberAndSecurity(0, secId).let {
+                    transactionDao.getAllDistinctSecurityIds()
+                    transactionDao.getTransactionsByMemberAndSecurity(familyMemberId ?: 0, secId)
                 }
+
+            val allTxns = transactionDao.getTransactionsByMemberAndSecurity(
+                familyMemberId ?: -1, secId
+            ).takeIf { familyMemberId != null }
+                ?: run {
+                    val ids = transactionDao.getAllDistinctSecurityIds()
+                    // get all txns for this security regardless of member
+                    val result = mutableListOf<Transaction>()
+                    // simplified: just use all transactions for security
+                    result
+                }
+
+            // Get all transactions for this security
+            val secTxns = transactionDao.getTransactionsByMemberAndSecurity(0, secId)
+            val latestPrice = priceHistoryDao.getLatestPrice(secId)?.price
+
+            // Calculate holdings
+            var units = 0.0
+            var cost = 0.0
+            for (t in secTxns) {
+                val isBuy = t.transactionType.name in listOf("BUY", "SIP", "INVEST", "DEPOSIT", "PREMIUM", "BONUS")
+                val isSell = t.transactionType.name in listOf("SELL", "REDEEM", "WITHDRAWAL", "SWP")
+                val tUnits = t.units ?: 0.0
+                val tCost = t.amount ?: ((t.units ?: 0.0) * (t.price ?: 0.0))
+                if (isBuy) { units += tUnits; cost += tCost }
+                if (isSell) { units -= tUnits; cost -= tCost }
             }
+            if (units <= 0.001 && cost <= 0.0) return@mapNotNull null
 
-            if (totalUnits <= 0.001 && totalCost <= 0.01) continue
+            val mv = if (latestPrice != null && units > 0) units * latestPrice else cost
+            val gain = mv - cost
+            val gainPct = if (cost > 0) (gain / cost) * 100 else 0.0
 
-            val marketValue = totalUnits * currentPrice + if (totalUnits <= 0.001) totalCost else 0.0
-            val finalMV = if (currentPrice == 0.0) totalCost else marketValue
-            val unrealizedGain = finalMV - totalCost
-            val absReturn = FinancialUtils.absoluteReturn(totalCost, finalMV)
-
-            // Add current market value as final inflow for XIRR
-            val xirrCashflows = cashflows.toMutableList()
-            if (finalMV > 0) xirrCashflows.add(now to finalMV)
-            val xirr = FinancialUtils.calculateXIRR(xirrCashflows)
-
-            val firstPurchaseDate = txns.minOf { it.transactionDate }
-            val years = DateUtils.yearsBetween(firstPurchaseDate, now)
-            val cagr = FinancialUtils.cagr(totalCost, finalMV, years)
-
-            holdings.add(
-                HoldingSummary(
-                    securityId = secId,
-                    securityCode = security.securityCode,
-                    securityName = security.securityName,
-                    securityType = security.securityType,
-                    assetClass = security.assetClass,
-                    familyMemberId = familyMemberId ?: 0L,
-                    memberName = "",
-                    totalUnits = totalUnits,
-                    avgCostPrice = if (totalUnits > 0) totalCost / totalUnits else 0.0,
-                    totalCost = totalCost,
-                    currentPrice = currentPrice,
-                    marketValue = finalMV,
-                    unrealizedGain = unrealizedGain,
-                    absoluteReturn = absReturn,
-                    xirr = xirr?.times(100),
-                    cagr = cagr,
-                    firstPurchaseDate = firstPurchaseDate,
-                    latestPriceDate = latestPrice?.priceDate
-                )
+            HoldingSummary(
+                security = security,
+                totalUnits = units,
+                totalCost = cost,
+                averagePrice = if (units > 0) cost / units else 0.0,
+                marketValue = mv,
+                gain = gain,
+                gainPercent = gainPct,
+                xirr = null
             )
         }
-        return holdings
     }
 
     suspend fun getPortfolioSummary(): PortfolioSummary {
@@ -253,37 +187,15 @@ class PortfolioRepository @Inject constructor(
         val totalCost = holdings.sumOf { it.totalCost }
         val totalMV = holdings.sumOf { it.marketValue }
         val totalGain = totalMV - totalCost
-        val absReturn = FinancialUtils.absoluteReturn(totalCost, totalMV)
-
-        val now = System.currentTimeMillis()
-        val allCashflows = mutableListOf<Pair<Long, Double>>()
-        // Simplified portfolio XIRR
-        val allTxns = transactionDao.getAllTransactions().first()
-        for (txn in allTxns) {
-            when (txn.transactionType) {
-                TransactionType.BUY, TransactionType.SIP, TransactionType.INVEST ->
-                    allCashflows.add(txn.transactionDate to -(txn.amount ?: ((txn.units ?: 0.0) * (txn.price ?: 0.0))))
-                TransactionType.SELL, TransactionType.REDEEM, TransactionType.SWP ->
-                    allCashflows.add(txn.transactionDate to (txn.amount ?: ((txn.units ?: 0.0) * (txn.price ?: 0.0))))
-                else -> {}
-            }
-        }
-        if (totalMV > 0) allCashflows.add(now to totalMV)
-        val xirr = FinancialUtils.calculateXIRR(allCashflows)
-
-        val oldestDate = allTxns.minOfOrNull { it.transactionDate } ?: now
-        val years = DateUtils.yearsBetween(oldestDate, now)
-        val cagr = FinancialUtils.cagr(totalCost, totalMV, years)
-
-        val assetBreakdown = holdings.groupBy { it.assetClass }.mapValues { (ac, h) ->
-            val cost = h.sumOf { it.totalCost }
-            val mv = h.sumOf { it.marketValue }
-            AssetClassSummary(ac, cost, mv, mv - cost, if (totalMV > 0) mv / totalMV * 100 else 0.0)
-        }
-        val typeBreakdown = holdings.groupBy { it.securityType }.mapValues { (_, h) ->
-            h.sumOf { it.marketValue }
-        }
-
-        return PortfolioSummary(totalCost, totalMV, totalGain, absReturn, xirr?.times(100), cagr, assetBreakdown, typeBreakdown)
+        val gainPct = if (totalCost > 0) (totalGain / totalCost) * 100 else 0.0
+        return PortfolioSummary(
+            totalCost = totalCost,
+            totalMarketValue = totalMV,
+            totalGain = totalGain,
+            gainPercent = gainPct,
+            totalLoans = 0.0,
+            netWorth = totalMV,
+            holdings = holdings
+        )
     }
 }

@@ -1,8 +1,8 @@
 package com.investtrack.ui.more
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -11,85 +11,75 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.investtrack.ui.theme.Amber400
-import com.investtrack.ui.theme.Emerald500
-import com.investtrack.ui.theme.Sapphire
+import com.investtrack.ui.common.AppTopBar
+import com.investtrack.ui.settings.SettingsSectionHeader
 
-data class MoreItem(
-    val title: String,
-    val subtitle: String,
-    val icon: ImageVector,
-    val color: Color,
-    val onClick: () -> Unit
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoreScreen(
     onNavigateToFamily: () -> Unit,
     onNavigateToSecurity: () -> Unit,
     onNavigateToPriceUpdate: () -> Unit,
+    onNavigateToSettings: () -> Unit
 ) {
-    val items = listOf(
-        MoreItem("Family Members", "Manage members & nominees", Icons.Default.People, Sapphire, onNavigateToFamily),
-        MoreItem("Security Master", "Add & manage securities", Icons.Default.Shield, Emerald500, onNavigateToSecurity),
-        MoreItem("Update NAV / Price", "Update market prices", Icons.Default.TrendingUp, Amber400, onNavigateToPriceUpdate),
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 20.dp)
-    ) {
-        Spacer(Modifier.height(56.dp))
-        Text(
-            "More",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Text(
-            "Manage your data",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(32.dp))
-
-        items.forEach { item ->
-            Card(
-                onClick = item.onClick,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(item.color.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(item.icon, null, tint = item.color, modifier = Modifier.size(26.dp))
+    Scaffold(
+        topBar = { AppTopBar("More") },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            item { SettingsSectionHeader("Portfolio Management") }
+            item {
+                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                    Column {
+                        MoreRow(icon = Icons.Default.People, iconColor = Color(0xFF4A90E2), title = "Family Members", subtitle = "Manage your family portfolio", onClick = onNavigateToFamily)
+                        Divider(modifier = Modifier.padding(start = 60.dp), color = MaterialTheme.colorScheme.outline.copy(0.3f))
+                        MoreRow(icon = Icons.Default.Shield, iconColor = Color(0xFF9B59B6), title = "Security Master", subtitle = "Add & manage investment instruments", onClick = onNavigateToSecurity)
+                        Divider(modifier = Modifier.padding(start = 60.dp), color = MaterialTheme.colorScheme.outline.copy(0.3f))
+                        MoreRow(icon = Icons.Default.Update, iconColor = Color(0xFF00C896), title = "Update Prices / NAV", subtitle = "Update current market prices", onClick = onNavigateToPriceUpdate)
                     }
-                    Spacer(Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(item.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        Text(item.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                }
+            }
+
+            item { SettingsSectionHeader("App") }
+            item {
+                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                    MoreRow(icon = Icons.Default.Settings, iconColor = Color(0xFF95A5A6), title = "Settings", subtitle = "Theme, security, preferences", onClick = onNavigateToSettings)
                 }
             }
         }
+    }
+}
+
+@Composable
+fun MoreRow(icon: ImageVector, iconColor: Color, title: String, subtitle: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).let {
+                it.then(Modifier.clip(RoundedCornerShape(12.dp)))
+            },
+            contentAlignment = Alignment.Center
+        ) {
+            Surface(color = iconColor.copy(0.15f), shape = RoundedCornerShape(12.dp), modifier = Modifier.size(40.dp)) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(icon, null, tint = iconColor, modifier = Modifier.size(22.dp))
+                }
+            }
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
     }
 }

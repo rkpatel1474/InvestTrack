@@ -14,8 +14,8 @@ android {
         applicationId "com.investtrack"
         minSdk 26
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "2.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary true }
     }
@@ -66,6 +66,12 @@ dependencies {
     implementation 'com.google.dagger:hilt-android:2.48'
     ksp 'com.google.dagger:hilt-android-compiler:2.48'
     implementation 'androidx.hilt:hilt-navigation-compose:1.1.0'
+
+    // DataStore (for preferences & theme)
+    implementation 'androidx.datastore:datastore-preferences:1.0.0'
+
+    // Biometric
+    implementation 'androidx.biometric:biometric:1.1.0'
 
     // Charts
     implementation 'com.patrykandpatrick.vico:compose-m3:1.13.1'

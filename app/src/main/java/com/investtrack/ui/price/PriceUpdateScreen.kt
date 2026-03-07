@@ -1,38 +1,14 @@
 package com.investtrack.ui.price
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -45,146 +21,141 @@ import com.investtrack.data.database.entities.PriceHistory
 import com.investtrack.data.database.entities.SecurityMaster
 import com.investtrack.data.repository.PriceRepository
 import com.investtrack.data.repository.SecurityRepository
-import com.investtrack.ui.common.DateField
-import com.investtrack.ui.common.InputField
-import com.investtrack.ui.common.SectionHeader
-import com.investtrack.ui.common.TopBarWithBack
+import com.investtrack.ui.common.*
 import com.investtrack.utils.DateUtils.toDisplayDate
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class PriceViewModel @Inject constructor(
-    private val priceRepo: PriceRepository,
-    private val securityRepo: SecurityRepository
+class PriceUpdateViewModel @Inject constructor(
+    private val secRepo: SecurityRepository,
+    private val priceRepo: PriceRepository
 ) : ViewModel() {
+    val allSecurities = secRepo.getAllSecurities()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _selectedSecurityId = MutableStateFlow<Long?>(null)
-    val selectedSecurityId: StateFlow<Long?> = _selectedSecurityId.asStateFlow()
+    fun getPriceHistory(secId: Long) = priceRepo.getPriceHistory(secId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun selectSecurity(id: Long) { _selectedSecurityId.value = id }
-    fun getPriceHistory(securityId: Long): Flow<List<PriceHistory>> = priceRepo.getPriceHistory(securityId)
-    suspend fun getSecurity(id: Long) = securityRepo.getSecurityById(id)
-    suspend fun searchSecurities(q: String) = securityRepo.searchSecurities(q)
-
-    fun savePrice(securityId: Long, date: Long, price: Double, onDone: () -> Unit) {
-        viewModelScope.launch {
-            priceRepo.insertPrice(PriceHistory(securityId = securityId, priceDate = date, price = price))
-            onDone()
-        }
+    fun savePrice(secId: Long, price: Double, date: Long, onDone: () -> Unit) = viewModelScope.launch {
+        priceRepo.insertPrice(PriceHistory(securityId = secId, priceDate = date, price = price))
+        onDone()
     }
-
-    fun deletePrice(securityId: Long, date: Long) = viewModelScope.launch {
-        priceRepo.deletePrice(securityId, date)
-    }
+    fun deletePrice(secId: Long, date: Long) = viewModelScope.launch { priceRepo.deletePrice(secId, date) }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PriceUpdateScreen(
-    preSelectedSecurityId: Long?,
-    onBack: () -> Unit,
-    vm: PriceViewModel = hiltViewModel()
-) {
-    val scope = rememberCoroutineScope()
+fun PriceUpdateScreen(preSelectedSecurityId: Long? = null, onBack: () -> Unit, vm: PriceUpdateViewModel = hiltViewModel()) {
+    val securities by vm.allSecurities.collectAsState()
     var selectedSecurity by remember { mutableStateOf<SecurityMaster?>(null) }
-    var securityQuery by remember { mutableStateOf("") }
-    var searchResults by remember { mutableStateOf(listOf<SecurityMaster>()) }
+    var searchQuery by remember { mutableStateOf("") }
     var showSearch by remember { mutableStateOf(false) }
+    var priceInput by remember { mutableStateOf("") }
     var priceDate by remember { mutableStateOf(System.currentTimeMillis()) }
-    var priceValue by remember { mutableStateOf("") }
     var showSuccess by remember { mutableStateOf(false) }
-    var priceHistory by remember { mutableStateOf(listOf<PriceHistory>()) }
 
-    LaunchedEffect(preSelectedSecurityId) {
-        preSelectedSecurityId?.let { id ->
-            selectedSecurity = vm.getSecurity(id)
-            selectedSecurity?.let { securityQuery = it.securityName }
+    val priceHistory by remember(selectedSecurity) {
+        if (selectedSecurity != null) vm.getPriceHistory(selectedSecurity!!.id)
+        else kotlinx.coroutines.flow.MutableStateFlow(emptyList())
+    }.collectAsState(emptyList())
+
+    LaunchedEffect(preSelectedSecurityId, securities) {
+        if (preSelectedSecurityId != null && selectedSecurity == null) {
+            selectedSecurity = securities.find { it.id == preSelectedSecurityId }
+            selectedSecurity?.let { searchQuery = it.securityName }
         }
     }
 
-    LaunchedEffect(selectedSecurity) {
-        selectedSecurity?.let { sec ->
-            vm.getPriceHistory(sec.id).collect { history ->
-                priceHistory = history
-            }
-        }
-    }
+    val filteredSecurities = securities.filter { searchQuery.isEmpty() || it.securityName.contains(searchQuery, true) || it.securityCode.contains(searchQuery, true) }
 
-    Scaffold(topBar = { TopBarWithBack("Update Price / NAV", onBack) }) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+    Scaffold(
+        topBar = { TopBarWithBack("Update Prices / NAV", onBack) },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
-                Card(shape = RoundedCornerShape(16.dp)) {
+                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("Add / Update Price", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("Select Security", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         OutlinedTextField(
-                            value = securityQuery,
-                            onValueChange = { q ->
-                                securityQuery = q
-                                showSearch = true
-                                scope.launch { searchResults = vm.searchSecurities(q) }
-                            },
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it; showSearch = true },
                             label = { Text("Search Security") },
                             trailingIcon = { Icon(Icons.Default.Search, null) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            singleLine = true
+                            modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                         )
-                        if (showSearch && searchResults.isNotEmpty()) {
-                            Card(elevation = CardDefaults.cardElevation(8.dp)) {
-                                searchResults.take(5).forEach { sec ->
-                                    ListItem(
-                                        headlineContent = { Text(sec.securityName) },
-                                        supportingContent = { Text(sec.securityCode) },
-                                        modifier = Modifier.clickable {
-                                            selectedSecurity = sec
-                                            securityQuery = sec.securityName
-                                            showSearch = false
+                        if (showSearch && filteredSecurities.isNotEmpty()) {
+                            Card(shape = RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(8.dp)) {
+                                Column {
+                                    filteredSecurities.take(6).forEach { sec ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().clickable {
+                                                selectedSecurity = sec; searchQuery = sec.securityName; showSearch = false
+                                            }.padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(sec.securityName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                                                Text(sec.securityType.name.replace("_"," "), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
                                         }
-                                    )
-                                    Divider()
+                                        Divider()
+                                    }
                                 }
                             }
                         }
-                        DateField("Price Date *", priceDate, { priceDate = it })
-                        InputField("Price / NAV (₹) *", priceValue, { priceValue = it; showSuccess = false }, keyboardType = KeyboardType.Decimal)
-                        if (showSuccess) {
-                            Text("✅ Price saved!", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                        selectedSecurity?.let { sec ->
+                            PillChip(sec.securityType.name.replace("_"," "), MaterialTheme.colorScheme.primary)
                         }
-                        Button(
-                            onClick = {
-                                val sec = selectedSecurity ?: return@Button
-                                val p = priceValue.toDoubleOrNull() ?: return@Button
-                                vm.savePrice(sec.id, priceDate, p) { showSuccess = true; priceValue = "" }
-                            },
-                            enabled = selectedSecurity != null && priceValue.isNotBlank(),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        ) { Text("Save Price") }
                     }
                 }
             }
-            if (priceHistory.isNotEmpty()) {
-                item { SectionHeader("Price History for ${selectedSecurity?.securityName ?: ""}") }
-                items(priceHistory.take(20)) { ph ->
-                    Card(shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
-                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(ph.priceDate.toDisplayDate(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                                Text("Source: ${ph.source}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            selectedSecurity?.let { sec ->
+                item {
+                    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("Enter Price / NAV", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            DateField("Price Date", priceDate, { priceDate = it })
+                            InputField("Price / NAV (₹)", priceInput, { priceInput = it; showSuccess = false }, keyboardType = KeyboardType.Decimal)
+                            Button(
+                                onClick = {
+                                    val p = priceInput.toDoubleOrNull() ?: return@Button
+                                    vm.savePrice(sec.id, p, priceDate) { priceInput = ""; showSuccess = true }
+                                },
+                                modifier = Modifier.fillMaxWidth(), enabled = priceInput.isNotBlank(), shape = RoundedCornerShape(12.dp)
+                            ) { Icon(Icons.Default.Save, null); Spacer(Modifier.width(8.dp)); Text("Save Price") }
+                            if (showSuccess) {
+                                Surface(color = MaterialTheme.colorScheme.primary.copy(0.1f), shape = RoundedCornerShape(8.dp)) {
+                                    Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary)
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("Price saved!", color = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
                             }
-                            Text("₹${"%.4f".format(ph.price)}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                            IconButton(onClick = { vm.deletePrice(ph.securityId, ph.priceDate) }) {
-                                Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+
+                if (priceHistory.isNotEmpty()) {
+                    item { SectionHeader("Price History") }
+                    items(priceHistory.take(10), key = { it.id }) { ph ->
+                        Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.5f))) {
+                            Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(ph.priceDate.toDisplayDate(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                                    Text(ph.source, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Text("₹${"%.4f".format(ph.price)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                IconButton(onClick = { vm.deletePrice(sec.id, ph.priceDate) }, modifier = Modifier.size(28.dp)) {
+                                    Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                                }
                             }
                         }
                     }
