@@ -245,7 +245,6 @@ fun DateField(label: String, value: Long, onValueChange: (Long) -> Unit, modifie
         )
     )
     if (showPicker) {
-        val cal = remember(value) { Calendar.getInstance().also { it.timeInMillis = value } }
         val state = rememberDatePickerState(initialSelectedDateMillis = value)
         DatePickerDialog(
             onDismissRequest = { showPicker = false },
