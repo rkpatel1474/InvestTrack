@@ -60,7 +60,11 @@ fun InvestTrackNavHost(
 
         composable(Screen.Dashboard.route) {
             DashboardScreen(
-                onNavigateToPortfolio    = { navController.navigate(Screen.Holdings.route) },
+                onNavigateToHoldings = { navController.navigate(Screen.Holdings.route) },
+                onNavigateToTransactions = { navController.navigate(Screen.TransactionList.route) },
+                onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction.createRoute()) },
+                onNavigateToSecurity = { sid -> navController.navigate(Screen.HoldingDetail.createRoute(sid)) }
+            ) },
                 onNavigateToTransactions = { navController.navigate(Screen.TransactionList.route) },
                 onNavigateToLoans        = { navController.navigate(Screen.LoanList.route) }
             )
@@ -159,7 +163,7 @@ fun InvestTrackNavHost(
             arguments = listOf(navArgument("loanId") { type = NavType.LongType; defaultValue = -1L })
         ) { back ->
             val id = back.arguments?.getLong("loanId")?.takeIf { it != -1L }
-            AddEditLoanScreen(editLoanId = id, onBack = { navController.popBackStack() })
+            AddEditLoanScreen(onEdit = id, onBack = { navController.popBackStack() })
         }
 
         composable(

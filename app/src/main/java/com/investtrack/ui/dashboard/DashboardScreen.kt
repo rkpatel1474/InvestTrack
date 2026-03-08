@@ -32,8 +32,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.investtrack.data.database.entities.*
 import com.investtrack.data.repository.*
-import com.investtrack.ui.common.MetricCard
-import com.investtrack.ui.common.SectionHeader
 import com.investtrack.ui.theme.GainColor
 import com.investtrack.ui.theme.LossColor
 import com.investtrack.utils.DateUtils.toDisplayDate

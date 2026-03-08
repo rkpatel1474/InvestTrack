@@ -84,7 +84,7 @@ fun HoldingsScreen(onAddTransaction: (Long) -> Unit, onBack: () -> Unit, vm: Hol
                         title = "Total Portfolio Value",
                         value = formatAmount(s.totalMarketValue),
                         subtitle = "Invested: ${formatAmount(s.totalCost)}",
-                        gainLoss = s.gainPercent,
+                        gainLoss = s.absoluteReturn,
                         modifier = Modifier.padding(16.dp)
                     )
                 }
@@ -92,8 +92,8 @@ fun HoldingsScreen(onAddTransaction: (Long) -> Unit, onBack: () -> Unit, vm: Hol
                     Row(modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         StatCard("P&L", formatAmount(s.totalGain), modifier = Modifier.weight(1f),
                             valueColor = if (s.totalGain >= 0) GainColor else LossColor)
-                        StatCard("Return", "${"%.2f".format(s.gainPercent)}%", modifier = Modifier.weight(1f),
-                            valueColor = if (s.gainPercent >= 0) GainColor else LossColor)
+                        StatCard("Return", "${"%.2f".format(s.absoluteReturn)}%", modifier = Modifier.weight(1f),
+                            valueColor = if (s.absoluteReturn >= 0) GainColor else LossColor)
                     }
                     Spacer(Modifier.height(16.dp))
                 }
@@ -118,13 +118,13 @@ fun HoldingsScreen(onAddTransaction: (Long) -> Unit, onBack: () -> Unit, vm: Hol
                 val filtered = if (filter == "ALL") s.holdings
                 else s.holdings.filter { h ->
                     when (filter) {
-                        "MF"     -> h.security.securityType.name == "MUTUAL_FUND"
-                        "SHARES" -> h.security.securityType.name == "SHARES"
-                        "FD"     -> h.security.securityType.name == "FD"
-                        "BONDS"  -> h.security.securityType.name in listOf("BOND","GOI_BOND")
-                        "NPS"    -> h.security.securityType.name in listOf("NPS","PF")
-                        "GOLD"   -> h.security.securityType.name == "GOLD"
-                        else     -> h.security.securityType.name in listOf("INSURANCE","PROPERTY","CRYPTO","OTHER")
+                        "MF"     -> h.holding.securityType.name == "MUTUAL_FUND"
+                        "SHARES" -> h.holding.securityType.name == "SHARES"
+                        "FD"     -> h.holding.securityType.name == "FD"
+                        "BONDS"  -> h.holding.securityType.name in listOf("BOND","GOI_BOND")
+                        "NPS"    -> h.holding.securityType.name in listOf("NPS","PF")
+                        "GOLD"   -> h.holding.securityType.name == "GOLD"
+                        else     -> h.holding.securityType.name in listOf("INSURANCE","PROPERTY","CRYPTO","OTHER")
                         }
                 }
 
@@ -148,7 +148,7 @@ fun HoldingsScreen(onAddTransaction: (Long) -> Unit, onBack: () -> Unit, vm: Hol
 
 @Composable
 fun HoldingCard(h: HoldingSummary, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val isGain = h.gain >= 0
+    val isGain = h.unrealizedGain >= 0
     Card(
         modifier = modifier.fillMaxWidth().clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
@@ -161,24 +161,24 @@ fun HoldingCard(h: HoldingSummary, onClick: () -> Unit, modifier: Modifier = Mod
                     modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.primary.copy(0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(h.security.securityName.take(2).uppercase(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                    Text(h.holding.securityName.take(2).uppercase(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
                 }
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(h.security.securityName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                    PillChip(h.security.securityType.name.replace("_"," "), MaterialTheme.colorScheme.secondary)
+                    Text(h.holding.securityName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                    PillChip(h.holding.securityType.name.replace("_"," "), MaterialTheme.colorScheme.secondary)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(formatAmount(h.marketValue), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    GainLossBadge(h.gainPercent)
+                    GainLossBadge(h.absoluteReturn)
                 }
             }
             Divider(color = MaterialTheme.colorScheme.outline.copy(0.2f))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 InfoCol("Units", "${"%.4f".format(h.totalUnits)}")
-                InfoCol("Avg Price", formatAmount(h.averagePrice))
+                InfoCol("Avg Price", formatAmount(h.avgCostPrice))
                 InfoCol("Invested", formatAmount(h.totalCost))
-                InfoCol("P&L", formatAmount(h.gain), if (isGain) GainColor else LossColor)
+                InfoCol("P&L", formatAmount(h.unrealizedGain), if (isGain) GainColor else LossColor)
             }
         }
     }

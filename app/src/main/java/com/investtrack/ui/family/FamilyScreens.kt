@@ -77,7 +77,7 @@ fun MemberCard(member: FamilyMember, onEdit: () -> Unit, onDelete: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(member.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 PillChip(member.relationship.name, MaterialTheme.colorScheme.secondary)
-                if (member.pan.isNotEmpty()) Text("PAN: ${member.pan}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (member.panNumber.isNotEmpty()) Text("PAN: ${member.panNumber}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary) }
             IconButton(onClick = { showConfirm = true }) { Icon(Icons.Default.Delete, null, tint = LossColor) }
@@ -108,9 +108,9 @@ fun AddEditMemberScreen(editMemberId: Long? = null, onBack: () -> Unit, vm: Fami
                 m?.let {
                     name = it.name
                     relationship = it.relationship
-                    pan = it.pan
+                    panNumber = it.pan
                     email = it.email
-                    phone = it.phone
+                    phoneNumber = it.phone
                     dob = it.dateOfBirth
                 }
             }
@@ -124,7 +124,7 @@ fun AddEditMemberScreen(editMemberId: Long? = null, onBack: () -> Unit, vm: Fami
             Surface(shadowElevation = 8.dp, color = MaterialTheme.colorScheme.background) {
                 Button(
                     onClick = {
-                        val m = FamilyMember(id = editMemberId ?: 0L, name = name.trim(), relationship = relationship, pan = pan.trim(), email = email.trim(), phone = phone.trim(), dateOfBirth = dob)
+                        val m = FamilyMember(id = editMemberId ?: 0L, name = name.trim(), relationship = relationship, panNumber = pan.trim(), email = email.trim(), phoneNumber = phone.trim(), dateOfBirth = dob)
                         vm.saveMember(m) { onBack() }
                     },
                     modifier = Modifier.fillMaxWidth().padding(16.dp), enabled = name.isNotBlank(), shape = RoundedCornerShape(12.dp)
@@ -150,9 +150,9 @@ fun AddEditMemberScreen(editMemberId: Long? = null, onBack: () -> Unit, vm: Fami
             }
             item {
                 FormCard("Contact & Identity") {
-                    InputField("PAN Number", pan, { pan = it.uppercase() })
+                    InputField("PAN Number", pan, { panNumber = it.uppercase() })
                     InputField("Email", email, { email = it }, keyboardType = KeyboardType.Email)
-                    InputField("Phone", phone, { phone = it }, keyboardType = KeyboardType.Phone)
+                    InputField("Phone", phone, { phoneNumber = it }, keyboardType = KeyboardType.Phone)
                 }
             }
         }

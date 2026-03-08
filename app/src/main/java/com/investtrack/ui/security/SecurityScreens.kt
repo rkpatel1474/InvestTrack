@@ -88,7 +88,7 @@ fun SecurityCard(sec: SecurityMaster, onEdit: () -> Unit, onDelete: () -> Unit) 
                     PillChip(sec.securityType.name.replace("_"," "), securityTypeColor(sec.securityType))
                     if (sec.securityCode.isNotEmpty()) Text(sec.securityCode, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (sec.amcName.isNotEmpty()) Text(sec.amcName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (sec.sector.isNotEmpty()) Text(sec.sector, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) }
             IconButton(onClick = { showConfirm = true }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Delete, null, tint = LossColor, modifier = Modifier.size(18.dp)) }
@@ -140,8 +140,8 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
             vm.getById(id) { s ->
                 s?.let {
                     name = it.securityName; code = it.securityCode; type = it.securityType
-                    assetClass = it.assetClass; isin = it.isinCode; amc = it.amcName
-                    schemeType = it.schemeType ?: MFSchemeType.OTHER
+                    assetClass = it.assetClass; isin = it.isin; amc = it.sector
+                    mfSchemeType = it.mfSchemeType ?: MFSchemeType.OTHER
                     exitLoad = it.exitLoadPercent?.toString() ?: ""; expenseRatio = it.expenseRatio?.toString() ?: ""
                     couponRate = it.couponRate?.toString() ?: ""
                     couponFreq = it.couponFrequency ?: CouponFrequency.ANNUALLY
@@ -170,8 +170,8 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
                     onClick = {
                         val s = SecurityMaster(
                             id = editSecurityId ?: 0L, securityName = name.trim(), securityCode = code.trim(),
-                            securityType = type, assetClass = assetClass, isinCode = isin.trim(), amcName = amc.trim(),
-                            schemeType = if (type == SecurityType.MUTUAL_FUND) schemeType else null,
+                            securityType = type, assetClass = assetClass, isin = isin.trim(), sector = amc.trim(),
+                            mfSchemeType = if (type == SecurityType.MUTUAL_FUND) schemeType else null,
                             exitLoadPercent = exitLoad.toDoubleOrNull(), expenseRatio = expenseRatio.toDoubleOrNull(),
                             couponRate = couponRate.toDoubleOrNull(), couponFrequency = if (couponRate.isNotEmpty()) couponFreq else null,
                             maturityDate = maturityDate, faceValue = faceValue.toDoubleOrNull(), creditRating = creditRating,
@@ -209,7 +209,7 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
                 item {
                     FormCard("Mutual Fund Details") {
                         InputField("AMC Name", amc, { amc = it })
-                        DropdownField("Scheme Type", MFSchemeType.values().toList(), schemeType, { schemeType = it }, { it.name.replace("_"," ") })
+                        DropdownField("Scheme Type", MFSchemeType.values().toList(), schemeType, { mfSchemeType = it }, { it.name.replace("_"," ") })
                         InputField("Exit Load (%)", exitLoad, { exitLoad = it }, keyboardType = KeyboardType.Decimal)
                         InputField("Expense Ratio (%)", expenseRatio, { expenseRatio = it }, keyboardType = KeyboardType.Decimal)
                     }

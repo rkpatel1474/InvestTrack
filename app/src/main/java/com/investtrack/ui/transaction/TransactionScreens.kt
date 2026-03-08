@@ -93,7 +93,7 @@ class TransactionViewModel @Inject constructor(
 
     suspend fun searchSecurities(query: String) = securityRepo.searchSecurities(query)
     suspend fun getSecurity(id: Long) = securityRepo.getSecurityById(id)
-    suspend fun getTransactionById(id: Long) = transactionRepo.getById(id)
+    suspend fun getTransactionById(id: Long) = transactionRepo.getSecurityById(id)
 
     fun saveTransaction(t: Transaction, onDone: () -> Unit) {
         viewModelScope.launch {
