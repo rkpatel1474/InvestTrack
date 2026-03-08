@@ -8,7 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.investtrack.ui.dashboard.DashboardScreen
 import com.investtrack.ui.family.FamilyListScreen
-import com.investtrack.ui.family.AddEditFamilyScreen
+import com.investtrack.ui.family.AddEditMemberScreen
 import com.investtrack.ui.security.SecurityListScreen
 import com.investtrack.ui.security.AddEditSecurityScreen
 import com.investtrack.ui.transaction.TransactionListScreen
@@ -146,7 +146,9 @@ fun InvestTrackNavHost(navController: NavHostController, onRequestPinSetup: () -
 
         composable(Screen.More.route) {
             SettingsScreen(
-                onNavigateToFamily   = { navController.navigate(Screen.FamilyList.route) },
+                onSetupPin = onRequestPinSetup,
+                onBack = { navController.popBackStack() }
+            ) },
                 onNavigateToSecurity = { navController.navigate(Screen.SecurityList.route) },
                 onRequestPinSetup    = onRequestPinSetup,
                 onBack               = { navController.popBackStack() }
@@ -155,7 +157,9 @@ fun InvestTrackNavHost(navController: NavHostController, onRequestPinSetup: () -
 
         composable(Screen.Settings.route) {
             SettingsScreen(
-                onNavigateToFamily   = { navController.navigate(Screen.FamilyList.route) },
+                onSetupPin = onRequestPinSetup,
+                onBack = { navController.popBackStack() }
+            ) },
                 onNavigateToSecurity = { navController.navigate(Screen.SecurityList.route) },
                 onRequestPinSetup    = onRequestPinSetup,
                 onBack               = { navController.popBackStack() }
@@ -174,7 +178,7 @@ fun InvestTrackNavHost(navController: NavHostController, onRequestPinSetup: () -
             Screen.AddEditFamily.route,
             arguments = listOf(navArgument("memberId") { type = NavType.LongType; defaultValue = -1L })
         ) { back ->
-            AddEditFamilyScreen(
+            AddEditMemberScreen(
                 memberId = back.arguments?.getLong("memberId")?.takeIf { it != -1L },
                 onBack   = { navController.popBackStack() }
             )
@@ -193,7 +197,7 @@ fun InvestTrackNavHost(navController: NavHostController, onRequestPinSetup: () -
             arguments = listOf(navArgument("securityId") { type = NavType.LongType; defaultValue = -1L })
         ) { back ->
             AddEditSecurityScreen(
-                securityId = back.arguments?.getLong("securityId")?.takeIf { it != -1L },
+                editSecurityId = back.arguments?.getLong("securityId")?.takeIf { it != -1L },
                 onBack     = { navController.popBackStack() }
             )
         }

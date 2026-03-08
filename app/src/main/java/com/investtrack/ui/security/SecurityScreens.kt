@@ -141,7 +141,7 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
                 s?.let {
                     name = it.securityName; code = it.securityCode; type = it.securityType
                     assetClass = it.assetClass; isin = it.isin; amc = it.sector
-                    mfSchemeType = it.mfSchemeType ?: MFSchemeType.OTHER
+                    schemeType = it.mfSchemeType ?: MFSchemeType.OTHER
                     exitLoad = ""; expenseRatio = ""
                     couponRate = it.couponRate?.toString() ?: ""
                     couponFreq = it.couponFrequency ?: CouponFrequency.ANNUALLY
@@ -151,7 +151,7 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
                     insType = it.insuranceType ?: InsuranceType.TERM
                     sumAssured = it.sumAssured?.toString() ?: ""; policyNo = ""; insurerName = ""
                     policyTerm = ""; premTerm = ""
-                    premFreq = it.premiumFrequency ?: CouponFrequency.ANNUALLY
+                    premFreq = it.couponFrequency ?: CouponFrequency.ANNUALLY
                     propertyAddress = ""; propertyType = ""
                     carpetArea = ""
                     goldPurity = ""; goldForm = it.goldForm; cryptoSymbol = it.cryptoSymbol

@@ -115,8 +115,8 @@ fun HoldingsScreen(onAddTransaction: (Long) -> Unit, onBack: () -> Unit, vm: Hol
                     }
                 }
 
-                val filtered = if (filter == "ALL") s.holdings
-                else s.holdings.filter { h ->
+                val filtered = if (filter == "ALL") vm.holdings.value
+                else vm.holdings.value.filter { h ->
                     when (filter) {
                         "MF"     -> h.securityType.name == "MUTUAL_FUND"
                         "SHARES" -> h.securityType.name == "SHARES"
@@ -131,7 +131,7 @@ fun HoldingsScreen(onAddTransaction: (Long) -> Unit, onBack: () -> Unit, vm: Hol
                 if (filtered.isEmpty()) {
                     item { EmptyState("No holdings for this filter.") }
                 } else {
-                    items(filtered.sortedByDescending { it.marketValue }, key = { it.securityId }) { h ->
+                    items(filtered.sortedByDescending { it.marketValue }, key = { h -> h.securityId }) { h ->
                         HoldingCard(h, onClick = { onAddTransaction(h.securityId) }, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
                     }
                 }
