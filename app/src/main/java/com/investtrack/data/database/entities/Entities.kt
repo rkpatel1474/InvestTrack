@@ -5,41 +5,34 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-// ─── Enums ────────────────────────────────────────────────────────────────────
+// ── Enums ─────────────────────────────────────────────────────────────────────
 enum class SecurityType { MUTUAL_FUND, SHARES, BOND, GOI_BOND, NPS, PF, FD, INSURANCE, PROPERTY, GOLD, CRYPTO, OTHER }
-enum class AssetClass { EQUITY, DEBT, HYBRID, REAL_ESTATE, GOLD, CASH, COMMODITY, INTERNATIONAL, CRYPTO, OTHER }
-enum class MFSchemeType {
-    ELSS, LARGE_CAP, MID_CAP, SMALL_CAP, FLEXI_CAP, MULTI_CAP, INDEX, SECTORAL,
-    SHORT_TERM, MEDIUM_TERM, LONG_TERM, LIQUID, OVERNIGHT, ARBITRAGE,
-    HYBRID_AGGRESSIVE, HYBRID_CONSERVATIVE, BALANCED_ADVANTAGE, OTHER
-}
-enum class TransactionType {
-    BUY, SELL, SIP, SWP, STP_IN, STP_OUT, INVEST, REDEEM, DIVIDEND, BONUS,
-    PREMIUM, MATURITY, INTEREST, COUPON, DEPOSIT, WITHDRAWAL, SPLIT, RIGHTS
-}
+enum class AssetClass { EQUITY, DEBT, HYBRID, REAL_ESTATE, GOLD, CASH, COMMODITY, OTHER }
+enum class MFSchemeType { ELSS, LARGE_CAP, MID_CAP, SMALL_CAP, FLEXI_CAP, MULTI_CAP, INDEX, SECTORAL, SHORT_TERM, MEDIUM_TERM, LONG_TERM, LIQUID, OVERNIGHT, ARBITRAGE, HYBRID_AGGRESSIVE, HYBRID_CONSERVATIVE, BALANCED_ADVANTAGE, OTHER }
+enum class TransactionType { BUY, SELL, SIP, SWP, STP_IN, STP_OUT, INVEST, REDEEM, DIVIDEND, BONUS, PREMIUM, MATURITY, INTEREST, COUPON, DEPOSIT, WITHDRAWAL, SPLIT, RIGHTS }
 enum class LoanType { HOME_LOAN, CAR_LOAN, PERSONAL_LOAN, EDUCATION_LOAN, GOLD_LOAN, BUSINESS_LOAN, CREDIT_CARD, OTHER }
 enum class CouponFrequency { MONTHLY, QUARTERLY, HALF_YEARLY, ANNUALLY }
 enum class InsuranceType { TERM, ULIP, ENDOWMENT, MONEY_BACK, HEALTH, VEHICLE, OTHER }
 enum class Relationship { SELF, SPOUSE, FATHER, MOTHER, SON, DAUGHTER, BROTHER, SISTER, OTHER }
 enum class InterestType { FIXED, FLOATING }
-enum class LoanAdjustment { REDUCE_EMI, REDUCE_TENURE }  // after rate change or prepayment
+enum class LoanAdjustment { REDUCE_EMI, REDUCE_TENURE }
 
-// ─── Family Member ────────────────────────────────────────────────────────────
+// ── Family Member ─────────────────────────────────────────────────────────────
 @Entity(tableName = "family_members")
 data class FamilyMember(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
-    val relationship: Relationship,
+    val relationship: Relationship = Relationship.SELF,
     val dateOfBirth: Long? = null,
-    val pan: String = "",
+    val panNumber: String = "",
+    val aadhaarNumber: String = "",
+    val phoneNumber: String = "",
     val email: String = "",
-    val phone: String = "",
-    val aadhaar: String = "",
     val isActive: Boolean = true,
     val createdAt: Long = System.currentTimeMillis()
 )
 
-// ─── Nominee ──────────────────────────────────────────────────────────────────
+// ── Nominee ───────────────────────────────────────────────────────────────────
 @Entity(
     tableName = "nominees",
     foreignKeys = [ForeignKey(FamilyMember::class, ["id"], ["familyMemberId"], ForeignKey.CASCADE)],
@@ -49,69 +42,37 @@ data class Nominee(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val familyMemberId: Long,
     val nomineeName: String,
-    val relationship: Relationship,
-    val dateOfBirth: Long? = null,
-    val pan: String = "",
-    val percentage: Double = 100.0,
-    val isMinor: Boolean = false,
-    val guardianName: String = ""
+    val relationship: Relationship = Relationship.OTHER,
+    val percentage: Double = 100.0
 )
 
-// ─── Security Master ──────────────────────────────────────────────────────────
+// ── Security Master ───────────────────────────────────────────────────────────
 @Entity(tableName = "security_master")
 data class SecurityMaster(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val securityCode: String,
+    val securityCode: String = "",
     val securityName: String,
     val securityType: SecurityType,
-    val assetClass: AssetClass = AssetClass.EQUITY,
-    // MF
-    val schemeType: MFSchemeType? = null,
-    val amcName: String = "",
-    val isinCode: String = "",
-    val exitLoadPercent: Double? = null,
-    val expenseRatio: Double? = null,
-    // Bond/GOI
+    val assetClass: AssetClass,
+    val mfSchemeType: MFSchemeType? = null,
     val couponRate: Double? = null,
     val couponFrequency: CouponFrequency? = null,
-    val firstCouponDate: Long? = null,
     val maturityDate: Long? = null,
     val faceValue: Double? = null,
-    val creditRating: String = "",
-    // NPS/PF
-    val npsSubType: String = "",
-    val pfAccountNumber: String = "",
-    val uanNumber: String = "",
-    // FD
-    val interestRate: Double? = null,
-    val fdTenureMonths: Int? = null,
-    val fdInterestType: String = "Simple",   // Simple / Compound
-    val fdPayoutFrequency: CouponFrequency? = null,
-    // Insurance
     val insuranceType: InsuranceType? = null,
-    val premiumFrequency: CouponFrequency? = null,
     val sumAssured: Double? = null,
-    val policyTerm: Int? = null,
-    val premiumTerm: Int? = null,
-    val policyNumber: String = "",
-    val insurerName: String = "",
-    // Property
-    val propertyAddress: String = "",
-    val propertyType: String = "",
-    val carpetArea: Double? = null,          // sq ft
-    val builtUpArea: Double? = null,
-    // Gold
-    val goldPurity: String = "",             // 24K, 22K, 18K
-    val goldForm: String = "",               // Coin, Bar, Jewellery, SGB
-    // Crypto
+    val premiumAmount: Double? = null,
+    val isin: String = "",
+    val exchange: String = "",
+    val sector: String = "",
+    val goldForm: String = "",
     val cryptoSymbol: String = "",
     val cryptoNetwork: String = "",
-
     val isActive: Boolean = true,
     val createdAt: Long = System.currentTimeMillis()
 )
 
-// ─── Transaction ──────────────────────────────────────────────────────────────
+// ── Transaction ───────────────────────────────────────────────────────────────
 @Entity(
     tableName = "transactions",
     foreignKeys = [
@@ -129,7 +90,7 @@ data class Transaction(
     val units: Double? = null,
     val price: Double? = null,
     val amount: Double? = null,
-    val nav: Double? = null,              // for MF: NAV on date
+    val nav: Double? = null,
     val stampDuty: Double = 0.0,
     val brokerage: Double = 0.0,
     val stt: Double = 0.0,
@@ -146,7 +107,7 @@ data class Transaction(
     val createdAt: Long = System.currentTimeMillis()
 )
 
-// ─── Price/NAV History ────────────────────────────────────────────────────────
+// ── Price/NAV History ─────────────────────────────────────────────────────────
 @Entity(
     tableName = "price_history",
     foreignKeys = [ForeignKey(SecurityMaster::class, ["id"], ["securityId"], ForeignKey.CASCADE)],
@@ -160,7 +121,7 @@ data class PriceHistory(
     val source: String = "Manual"
 )
 
-// ─── Loan ─────────────────────────────────────────────────────────────────────
+// ── Loan ──────────────────────────────────────────────────────────────────────
 @Entity(
     tableName = "loans",
     foreignKeys = [ForeignKey(FamilyMember::class, ["id"], ["familyMemberId"], ForeignKey.CASCADE)],
@@ -170,25 +131,20 @@ data class Loan(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val familyMemberId: Long,
     val loanName: String,
-    val loanType: LoanType,
+    val loanType: LoanType = LoanType.OTHER,
     val lenderName: String = "",
     val accountNumber: String = "",
     val loanAmount: Double,
-    val interestRate: Double,              // current/original annual %
-    val interestType: InterestType = InterestType.FIXED,
+    val interestRate: Double,
     val tenureMonths: Int,
     val disbursementDate: Long,
     val emiAmount: Double,
-    val emiDay: Int = 1,                   // day of month EMI is due
     val processingFee: Double = 0.0,
-    val prepaymentCharges: Double = 0.0,
-    val moratoriumMonths: Int = 0,
-    val isActive: Boolean = true,
     val notes: String = "",
-    val createdAt: Long = System.currentTimeMillis()
+    val isActive: Boolean = true
 )
 
-// ─── Loan Rate Change History ─────────────────────────────────────────────────
+// ── Loan Rate Change ──────────────────────────────────────────────────────────
 @Entity(
     tableName = "loan_rate_changes",
     foreignKeys = [ForeignKey(Loan::class, ["id"], ["loanId"], ForeignKey.CASCADE)],
@@ -207,7 +163,7 @@ data class LoanRateChange(
     val notes: String = ""
 )
 
-// ─── Loan Payment ─────────────────────────────────────────────────────────────
+// ── Loan Payment ──────────────────────────────────────────────────────────────
 @Entity(
     tableName = "loan_payments",
     foreignKeys = [ForeignKey(Loan::class, ["id"], ["loanId"], ForeignKey.CASCADE)],
@@ -217,35 +173,28 @@ data class LoanPayment(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val loanId: Long,
     val paymentDate: Long,
-    val installmentNumber: Int,
+    val installmentNumber: Int = 0,
     val emiPaid: Double,
     val principalPaid: Double,
     val interestPaid: Double,
     val outstandingBalance: Double,
     val isPrepayment: Boolean = false,
-    val prepaymentAmount: Double = 0.0,
-    val rateApplied: Double = 0.0,         // rate used for this installment
-    val notes: String = ""
+    val rateApplied: Double = 0.0
 )
 
-// ─── SIP Plan ─────────────────────────────────────────────────────────────────
+// ── SIP Plan ──────────────────────────────────────────────────────────────────
 @Entity(
     tableName = "sip_plans",
-    foreignKeys = [
-        ForeignKey(FamilyMember::class, ["id"], ["familyMemberId"], ForeignKey.CASCADE),
-        ForeignKey(SecurityMaster::class, ["id"], ["securityId"], ForeignKey.CASCADE)
-    ],
-    indices = [Index("familyMemberId"), Index("securityId")]
+    foreignKeys = [ForeignKey(FamilyMember::class, ["id"], ["familyMemberId"], ForeignKey.CASCADE)],
+    indices = [Index("familyMemberId")]
 )
 data class SipPlan(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val familyMemberId: Long,
     val securityId: Long,
-    val folioNumber: String = "",
     val sipAmount: Double,
     val sipDate: Int,
     val startDate: Long,
     val endDate: Long? = null,
-    val isActive: Boolean = true,
-    val notes: String = ""
+    val isActive: Boolean = true
 )
