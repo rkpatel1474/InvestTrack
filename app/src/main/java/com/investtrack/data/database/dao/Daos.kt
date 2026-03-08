@@ -3,6 +3,7 @@ package com.investtrack.data.database.dao
 import androidx.room.*
 import com.investtrack.data.database.entities.*
 import kotlinx.coroutines.flow.Flow
+import com.investtrack.data.database.entities.LoanRateChange
 
 // ─────────────────────────────────────────────────────────
 // FamilyMember DAO
@@ -211,4 +212,16 @@ interface SipPlanDao {
 
     @Query("UPDATE sip_plans SET isActive = 0 WHERE id = :id")
     suspend fun deactivate(id: Long)
+}
+
+@Dao
+interface LoanRateChangeDao {
+    @Query("SELECT * FROM loan_rate_changes WHERE loanId = :loanId ORDER BY effectiveDate ASC")
+    fun getRateChangesForLoan(loanId: Long): Flow<List<LoanRateChange>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(rateChange: LoanRateChange): Long
+
+    @Delete
+    suspend fun delete(rateChange: LoanRateChange)
 }
