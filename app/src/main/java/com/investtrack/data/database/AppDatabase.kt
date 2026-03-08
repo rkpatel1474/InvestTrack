@@ -7,6 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.investtrack.data.database.Converters
 import com.investtrack.data.database.dao.FamilyMemberDao
 import com.investtrack.data.database.dao.LoanDao
 import com.investtrack.data.database.dao.LoanPaymentDao
