@@ -199,7 +199,7 @@ fun DashboardScreen(
             item { Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
         } else {
             // ── Hero Card ────────────────────────────────────────────────────
-            uiState.val s = portfolioSummary
+            val s = uiState.portfolioSummary
 if (s != null) {
                 item { HeroCard(s, uiState.totalLoanOutstanding) }
 

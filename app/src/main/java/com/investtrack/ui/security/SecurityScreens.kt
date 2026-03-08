@@ -141,7 +141,7 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
                 s?.let {
                     name = it.securityName; code = it.securityCode; type = it.securityType
                     assetClass = it.assetClass; isin = it.isin; amc = it.sector
-                    schemeType = it.schemeType ?: MFSchemeType.OTHER
+                    schemeType = it.mfSchemeType ?: MFSchemeType.OTHER
                     exitLoad = ""; expenseRatio = ""
                     couponRate = it.couponRate?.toString() ?: ""
                     couponFreq = it.couponFrequency ?: CouponFrequency.ANNUALLY

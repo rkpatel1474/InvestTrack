@@ -160,10 +160,10 @@ fun AddEditMemberScreen(
             vm.getMember(editMemberId)?.let { m ->
                 name         = m.name
                 relationship = m.relationship
-                pan          = m.pan        // entity field: pan
+                pan          = m.panNumber        // entity field: pan
                 email        = m.email
-                phone        = m.phone      // entity field: phone
-                aadhaar      = m.aadhaar    // entity field: aadhaar
+                phone        = m.phoneNumber      // entity field: phone
+                aadhaar      = m.aadhaarNumber    // entity field: aadhaar
                 dob          = m.dateOfBirth
             }
             nominees = vm.getNominees(editMemberId).first()
@@ -180,10 +180,10 @@ fun AddEditMemberScreen(
                             id           = editMemberId ?: 0L,
                             name         = name.trim(),
                             relationship = relationship,
-                            pan          = pan.trim(),    // entity field: pan
+                            panNumber    = pan.trim(),    // entity field: pan
                             email        = email.trim(),
-                            phone        = phone.trim(),  // entity field: phone
-                            aadhaar      = aadhaar.trim(),// entity field: aadhaar
+                            phoneNumber  = phone.trim(),  // entity field: phone
+                            aadhaarNumber = aadhaar.trim(),// entity field: aadhaar
                             dateOfBirth  = dob
                         )
                         vm.saveMemberWithNominees(m, nominees) { onBack() }
