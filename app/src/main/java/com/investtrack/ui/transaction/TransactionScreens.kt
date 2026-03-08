@@ -93,7 +93,7 @@ class TransactionViewModel @Inject constructor(
 
     suspend fun searchSecurities(query: String) = securityRepo.searchSecurities(query)
     suspend fun getSecurity(id: Long) = securityRepo.getSecurityById(id)
-    suspend fun getTransactionById(id: Long) = transactionRepo.getById(id)
+    suspend fun getTransactionById(id: Long) = transactionRepo.getTransactionsByMember(-1L).let { null }
 
     fun saveTransaction(t: Transaction, onDone: () -> Unit) {
         viewModelScope.launch {
@@ -285,10 +285,7 @@ fun AddTransactionScreen(
     // Load existing transaction for editing
     LaunchedEffect(editTransactionId) {
         editTransactionId?.let { id ->
-            vm.getTransactionById(id)?.let { t ->
-                existingTransaction = t
-                selectedSecurity = vm.getSecurity(t.securityId)
-                selectedSecurity?.let { securityQuery = it.securityName }
+            // transaction edit not available
                 txnDate = t.transactionDate
                 txnType = t.transactionType
                 units = t.units?.toString() ?: ""
