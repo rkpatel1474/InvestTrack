@@ -207,7 +207,7 @@ fun AddEditMemberScreen(
                         InputField("Full Name *", name, { name = it })
                         DropdownField("Relationship", Relationship.values().toList(), relationship, { relationship = it }, { it.name })
                         DateField("Date of Birth", dob, { dob = it })
-                        InputField("PAN", pan, {.uppercase() })
+                        InputField("PAN", pan, { pan = it.uppercase() })
                         InputField("Phone", phone, { phone = it }, keyboardType = KeyboardType.Phone)
                         InputField("Email", email, { email = it }, keyboardType = KeyboardType.Email)
                         InputField("Aadhaar", aadhaar, { aadhaar = it }, keyboardType = KeyboardType.Number)
