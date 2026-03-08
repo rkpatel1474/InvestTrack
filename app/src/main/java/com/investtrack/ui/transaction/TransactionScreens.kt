@@ -284,20 +284,7 @@ fun AddTransactionScreen(
 
     // Load existing transaction for editing
     LaunchedEffect(editTransactionId) {
-        editTransactionId?.let { id ->
-            // transaction edit not available
-                txnDate = t.transactionDate
-                txnType = t.transactionType
-                units = t.units?.toString() ?: ""
-                price = t.price?.toString() ?: ""
-                amount = t.amount?.toString() ?: ""
-                stampDuty = t.stampDuty.toString()
-                brokerage = t.brokerage.toString()
-                stt = t.stt.toString()
-                folioNumber = t.folioNumber
-                notes = t.notes
-            }
-        }
+        // Edit by ID not supported via TransactionRepository - leave empty
     }
 
     // Load pre-selected security (add mode)
