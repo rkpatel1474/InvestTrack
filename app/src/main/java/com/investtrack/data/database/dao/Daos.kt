@@ -1,22 +1,12 @@
 package com.investtrack.data.database.dao
 
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Update
-import com.investtrack.data.database.entities.FamilyMember
-import com.investtrack.data.database.entities.Loan
-import com.investtrack.data.database.entities.LoanPayment
-import com.investtrack.data.database.entities.LoanRateChange
-import com.investtrack.data.database.entities.Nominee
-import com.investtrack.data.database.entities.PriceHistory
-import com.investtrack.data.database.entities.SecurityMaster
-import com.investtrack.data.database.entities.SecurityType
-import com.investtrack.data.database.entities.SipPlan
-import com.investtrack.data.database.entities.Transaction
+import androidx.room.*
+import com.investtrack.data.database.entities.*
 import kotlinx.coroutines.flow.Flow
+
+// ─────────────────────────────────────────────────────────
+// FamilyMember DAO
+// ─────────────────────────────────────────────────────────
 
 @Dao
 interface FamilyMemberDao {
@@ -36,6 +26,10 @@ interface FamilyMemberDao {
     suspend fun softDelete(id: Long)
 }
 
+// ─────────────────────────────────────────────────────────
+// Nominee DAO
+// ─────────────────────────────────────────────────────────
+
 @Dao
 interface NomineeDao {
     @Query("SELECT * FROM nominees WHERE familyMemberId = :memberId")
@@ -53,6 +47,10 @@ interface NomineeDao {
     @Query("DELETE FROM nominees WHERE familyMemberId = :memberId")
     suspend fun deleteAllForMember(memberId: Long)
 }
+
+// ─────────────────────────────────────────────────────────
+// SecurityMaster DAO
+// ─────────────────────────────────────────────────────────
 
 @Dao
 interface SecurityMasterDao {
@@ -78,6 +76,10 @@ interface SecurityMasterDao {
     suspend fun softDelete(id: Long)
 }
 
+// ─────────────────────────────────────────────────────────
+// Transaction DAO
+// ─────────────────────────────────────────────────────────
+
 @Dao
 interface TransactionDao {
     @Query("SELECT * FROM transactions ORDER BY transactionDate DESC")
@@ -92,20 +94,17 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE familyMemberId = :memberId AND securityId = :securityId ORDER BY transactionDate ASC")
     suspend fun getTransactionsByMemberAndSecurity(memberId: Long, securityId: Long): List<Transaction>
 
-    @Query("SELECT * FROM transactions WHERE securityId = :securityId ORDER BY transactionDate ASC")
-    suspend fun getAllTransactionsForSecurity(securityId: Long): List<Transaction>
-
-    @Query("SELECT * FROM transactions WHERE id = :id")
-    suspend fun getTransactionById(id: Long): Transaction?
-
     @Query("SELECT * FROM transactions ORDER BY transactionDate DESC LIMIT :limit")
-    fun getRecentTransactions(limit: Int): Flow<List<Transaction>>
+    fun getRecentTransactions(limit: Int = 10): Flow<List<Transaction>>
 
     @Query("SELECT DISTINCT securityId FROM transactions WHERE familyMemberId = :memberId")
     suspend fun getDistinctSecurityIds(memberId: Long): List<Long>
 
     @Query("SELECT DISTINCT securityId FROM transactions")
     suspend fun getAllDistinctSecurityIds(): List<Long>
+
+    @Query("SELECT DISTINCT securityId FROM transactions WHERE familyMemberId = :memberId")
+    suspend fun getDistinctSecurityIdsByMember(memberId: Long): List<Long>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(transaction: Transaction): Long
@@ -116,6 +115,10 @@ interface TransactionDao {
     @Delete
     suspend fun delete(transaction: Transaction)
 }
+
+// ─────────────────────────────────────────────────────────
+// PriceHistory DAO
+// ─────────────────────────────────────────────────────────
 
 @Dao
 interface PriceHistoryDao {
@@ -134,6 +137,10 @@ interface PriceHistoryDao {
     @Query("DELETE FROM price_history WHERE securityId = :securityId AND priceDate = :date")
     suspend fun deletePrice(securityId: Long, date: Long)
 }
+
+// ─────────────────────────────────────────────────────────
+// Loan DAO
+// ─────────────────────────────────────────────────────────
 
 @Dao
 interface LoanDao {
@@ -156,17 +163,9 @@ interface LoanDao {
     suspend fun softDelete(id: Long)
 }
 
-@Dao
-interface LoanRateChangeDao {
-    @Query("SELECT * FROM loan_rate_changes WHERE loanId = :loanId ORDER BY effectiveDate ASC")
-    fun getRateChanges(loanId: Long): Flow<List<LoanRateChange>>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(change: LoanRateChange): Long
-
-    @Delete
-    suspend fun delete(change: LoanRateChange)
-}
+// ─────────────────────────────────────────────────────────
+// LoanPayment DAO
+// ─────────────────────────────────────────────────────────
 
 @Dao
 interface LoanPaymentDao {
@@ -191,6 +190,10 @@ interface LoanPaymentDao {
     @Delete
     suspend fun delete(payment: LoanPayment)
 }
+
+// ─────────────────────────────────────────────────────────
+// SipPlan DAO
+// ─────────────────────────────────────────────────────────
 
 @Dao
 interface SipPlanDao {
