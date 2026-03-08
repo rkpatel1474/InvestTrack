@@ -114,8 +114,8 @@ fun FamilyMemberCard(member: FamilyMember, onEdit: () -> Unit, onDelete: () -> U
                 Text(member.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Text(member.relationship.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 // Entity field is 'pan' (not panNumber)
-                if (member.pan.isNotBlank()) {
-                    Text("PAN: ${member.pan}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (member.panNumber.isNotBlank()) {
+                    Text("PAN: ${member.panNumber}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, "Edit") }
@@ -207,7 +207,7 @@ fun AddEditMemberScreen(
                         InputField("Full Name *", name, { name = it })
                         DropdownField("Relationship", Relationship.values().toList(), relationship, { relationship = it }, { it.name })
                         DateField("Date of Birth", dob, { dob = it })
-                        InputField("PAN", pan, { pan = it.uppercase() })
+                        InputField("PAN", pan, {.uppercase() })
                         InputField("Phone", phone, { phone = it }, keyboardType = KeyboardType.Phone)
                         InputField("Email", email, { email = it }, keyboardType = KeyboardType.Email)
                         InputField("Aadhaar", aadhaar, { aadhaar = it }, keyboardType = KeyboardType.Number)
@@ -260,11 +260,5 @@ fun NomineeForm(nominee: Nominee, onUpdate: (Nominee) -> Unit, onDelete: () -> U
         InputField("Nominee Name", nominee.nomineeName, { onUpdate(nominee.copy(nomineeName = it)) })
         DropdownField("Relationship", Relationship.values().toList(), nominee.relationship, { onUpdate(nominee.copy(relationship = it)) }, { it.name })
         InputField("Share %", nominee.percentage.toString(), { onUpdate(nominee.copy(percentage = it.toDoubleOrNull() ?: 0.0)) }, keyboardType = KeyboardType.Decimal)
-        InputField("PAN (optional)", nominee.pan, { onUpdate(nominee.copy(pan = it)) })
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = nominee.isMinor, onCheckedChange = { onUpdate(nominee.copy(isMinor = it)) })
-            Text("Minor Nominee")
-        }
-        if (nominee.isMinor) InputField("Guardian Name", nominee.guardianName, { onUpdate(nominee.copy(guardianName = it)) })
     }
 }
