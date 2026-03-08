@@ -5,48 +5,41 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Outer glow ring -->
-    <path
-        android:fillColor="#1A4FC3F7"
-        android:pathData="M54,10 A44,44 0 1,1 53.99,10 Z" />
+    <!-- Bar 1 -->
+    <path android:fillColor="#99FFFFFF"
+        android:pathData="M26,62 Q26,60 28,60 L33,60 Q35,60 35,62 L35,76 L26,76 Z"/>
+    <!-- Bar 2 -->
+    <path android:fillColor="#BBFFFFFF"
+        android:pathData="M40,52 Q40,50 42,50 L47,50 Q49,50 49,52 L49,76 L40,76 Z"/>
+    <!-- Bar 3 -->
+    <path android:fillColor="#DDFFFFFF"
+        android:pathData="M54,41 Q54,39 56,39 L61,39 Q63,39 63,41 L63,76 L54,76 Z"/>
+    <!-- Bar 4 -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M68,30 Q68,28 70,28 L75,28 Q77,28 77,30 L77,76 L68,76 Z"/>
 
-    <!-- Chart base line -->
-    <path
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="3.5"
-        android:strokeLineCap="round"
-        android:pathData="M22,76 L86,76"
-        android:fillColor="#00000000" />
+    <!-- Base line -->
+    <path android:strokeColor="#CCFFFFFF" android:strokeWidth="2.5"
+        android:strokeLineCap="round" android:fillColor="#00000000"
+        android:pathData="M20,76 L88,76"/>
 
-    <!-- Upward trending bar chart bars -->
-    <rect android:x="26" android:y="62" android:width="9" android:height="14"
-        android:fillColor="#B3FFFFFF" android:rx="2" />
-    <rect android:x="40" android:y="52" android:width="9" android:height="24"
-        android:fillColor="#CCFFFFFF" android:rx="2" />
-    <rect android:x="54" android:y="41" android:width="9" android:height="35"
-        android:fillColor="#E6FFFFFF" android:rx="2" />
-    <rect android:x="68" android:y="30" android:width="9" android:height="46"
-        android:fillColor="#FFFFFFFF" android:rx="2" />
+    <!-- Trend line (cyan glow) -->
+    <path android:strokeColor="#5080DEEA" android:strokeWidth="5"
+        android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000"
+        android:pathData="M30,65 L44,55 L58,44 L72,33 L82,26"/>
+    <path android:strokeColor="#FF80DEEA" android:strokeWidth="2.5"
+        android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000"
+        android:pathData="M30,65 L44,55 L58,44 L72,33 L82,26"/>
 
-    <!-- Trend line over bars -->
-    <path
-        android:strokeColor="#FF80DEEA"
-        android:strokeWidth="3"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M26,68 L40,58 L54,46 L68,35 L80,27"
-        android:fillColor="#00000000" />
+    <!-- Dot at peak -->
+    <path android:fillColor="#FF80DEEA"
+        android:pathData="M82,26 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0"/>
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M82,26 m-2.5,0 a2.5,2.5 0 1,0 5,0 a2.5,2.5 0 1,0 -5,0"/>
 
-    <!-- Dot at top of trend line -->
-    <circle android:cx="80" android:cy="27" android:r="4"
-        android:fillColor="#FF80DEEA" />
-
-    <!-- Rupee symbol bottom left -->
-    <path
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="2.5"
-        android:strokeLineCap="round"
-        android:pathData="M20,84 L28,84 M20,88 L28,88 M20,84 Q28,84 28,88 Q28,92 20,92 L30,100"
-        android:fillColor="#00000000" />
+    <!-- Rupee ₹ symbol -->
+    <path android:strokeColor="#CCFFFFFF" android:strokeWidth="2.5"
+        android:strokeLineCap="round" android:fillColor="#00000000"
+        android:pathData="M22,83 L30,83 M22,87 L30,87 M22,83 Q30,83 30,87 Q30,91 22,91 L31,99"/>
 
 </vector>
