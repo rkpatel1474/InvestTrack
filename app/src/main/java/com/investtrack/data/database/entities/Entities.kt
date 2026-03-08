@@ -107,7 +107,7 @@ data class Transaction(
     val createdAt: Long = System.currentTimeMillis()
 )
 
-// ── Price/NAV History ─────────────────────────────────────────────────────────
+// ── Price History ─────────────────────────────────────────────────────────────
 @Entity(
     tableName = "price_history",
     foreignKeys = [ForeignKey(SecurityMaster::class, ["id"], ["securityId"], ForeignKey.CASCADE)],
