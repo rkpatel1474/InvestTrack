@@ -21,40 +21,32 @@ import com.investtrack.ui.holdings.HoldingsScreen
 import com.investtrack.ui.settings.SettingsScreen
 
 sealed class Screen(val route: String) {
-    object Dashboard    : Screen("dashboard")
-    object Holdings     : Screen("holdings")
+    object Dashboard       : Screen("dashboard")
+    object Holdings        : Screen("holdings")
     object TransactionList : Screen("transaction_list")
-    object LoanList     : Screen("loan_list")
-    object More         : Screen("more")
-    object FamilyList   : Screen("family_list")
-    object SecurityList : Screen("security_list")
-    object AddEditFamily : Screen("add_edit_family?memberId={memberId}") {
-        fun createRoute(memberId: Long? = null) =
-            "add_edit_family?memberId=${memberId ?: -1L}"
+    object LoanList        : Screen("loan_list")
+    object More            : Screen("more")
+    object FamilyList      : Screen("family_list")
+    object SecurityList    : Screen("security_list")
+    object Settings        : Screen("settings")
+    object AddEditFamily   : Screen("add_edit_member?memberId={memberId}") {
+        fun createRoute(memberId: Long? = null) = "add_edit_member?memberId=${memberId ?: -1L}"
     }
     object AddEditSecurity : Screen("add_edit_security?securityId={securityId}") {
-        fun createRoute(securityId: Long? = null) =
-            "add_edit_security?securityId=${securityId ?: -1L}"
+        fun createRoute(securityId: Long? = null) = "add_edit_security?securityId=${securityId ?: -1L}"
     }
-    object AddTransaction : Screen("add_transaction?securityId={securityId}") {
-        fun createRoute(securityId: Long? = null) =
-            "add_transaction?securityId=${securityId ?: -1L}"
+    object AddTransaction  : Screen("add_transaction?securityId={securityId}") {
+        fun createRoute(securityId: Long? = null) = "add_transaction?securityId=${securityId ?: -1L}"
     }
-    object EditTransaction : Screen("edit_transaction/{transactionId}") {
-        fun createRoute(id: Long) = "edit_transaction/$id"
+    object PriceUpdate     : Screen("price_update?securityId={securityId}") {
+        fun createRoute(securityId: Long? = null) = "price_update?securityId=${securityId ?: -1L}"
     }
-    object PriceUpdate : Screen("price_update?securityId={securityId}") {
-        fun createRoute(securityId: Long? = null) =
-            "price_update?securityId=${securityId ?: -1L}"
+    object AddEditLoan     : Screen("add_edit_loan?loanId={loanId}") {
+        fun createRoute(loanId: Long? = null) = "add_edit_loan?loanId=${loanId ?: -1L}"
     }
-    object AddEditLoan : Screen("add_edit_loan?loanId={loanId}") {
-        fun createRoute(loanId: Long? = null) =
-            "add_edit_loan?loanId=${loanId ?: -1L}"
-    }
-    object LoanDetail : Screen("loan_detail/{loanId}") {
+    object LoanDetail      : Screen("loan_detail/{loanId}") {
         fun createRoute(loanId: Long) = "loan_detail/$loanId"
     }
-    object Settings : Screen("settings")
 }
 
 @Composable
@@ -63,10 +55,10 @@ fun InvestTrackNavHost(navController: NavHostController, onRequestPinSetup: () -
 
         composable(Screen.Dashboard.route) {
             DashboardScreen(
-                onNavigateToHoldings     = { navController.navigate(Screen.Holdings.route) },
-                onNavigateToTransactions = { navController.navigate(Screen.TransactionList.route) },
+                onNavigateToHoldings       = { navController.navigate(Screen.Holdings.route) },
+                onNavigateToTransactions   = { navController.navigate(Screen.TransactionList.route) },
                 onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction.createRoute()) },
-                onNavigateToSecurity     = { sid -> if (sid > 0L) navController.navigate(Screen.AddTransaction.createRoute(sid)) }
+                onNavigateToSecurity       = { sid -> if (sid > 0L) navController.navigate(Screen.AddTransaction.createRoute(sid)) }
             )
         }
 
@@ -80,7 +72,7 @@ fun InvestTrackNavHost(navController: NavHostController, onRequestPinSetup: () -
         composable(Screen.TransactionList.route) {
             TransactionListScreen(
                 onAddTransaction  = { navController.navigate(Screen.AddTransaction.createRoute()) },
-                onEditTransaction = { id -> navController.navigate(Screen.EditTransaction.createRoute(id)) },
+                onEditTransaction = { navController.navigate(Screen.AddTransaction.createRoute()) },
                 onBack            = { navController.popBackStack() }
             )
         }
@@ -91,16 +83,6 @@ fun InvestTrackNavHost(navController: NavHostController, onRequestPinSetup: () -
         ) { back ->
             AddTransactionScreen(
                 preSelectedSecurityId = back.arguments?.getLong("securityId")?.takeIf { it != -1L },
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        composable(
-            Screen.EditTransaction.route,
-            arguments = listOf(navArgument("transactionId") { type = NavType.LongType })
-        ) { back ->
-            AddTransactionScreen(
-                editTransactionId = back.arguments!!.getLong("transactionId"),
                 onBack = { navController.popBackStack() }
             )
         }
@@ -147,22 +129,14 @@ fun InvestTrackNavHost(navController: NavHostController, onRequestPinSetup: () -
         composable(Screen.More.route) {
             SettingsScreen(
                 onSetupPin = onRequestPinSetup,
-                onBack = { navController.popBackStack() }
-            ) },
-                onNavigateToSecurity = { navController.navigate(Screen.SecurityList.route) },
-                onRequestPinSetup    = onRequestPinSetup,
-                onBack               = { navController.popBackStack() }
+                onBack     = { navController.popBackStack() }
             )
         }
 
         composable(Screen.Settings.route) {
             SettingsScreen(
                 onSetupPin = onRequestPinSetup,
-                onBack = { navController.popBackStack() }
-            ) },
-                onNavigateToSecurity = { navController.navigate(Screen.SecurityList.route) },
-                onRequestPinSetup    = onRequestPinSetup,
-                onBack               = { navController.popBackStack() }
+                onBack     = { navController.popBackStack() }
             )
         }
 
@@ -179,8 +153,8 @@ fun InvestTrackNavHost(navController: NavHostController, onRequestPinSetup: () -
             arguments = listOf(navArgument("memberId") { type = NavType.LongType; defaultValue = -1L })
         ) { back ->
             AddEditMemberScreen(
-                memberId = back.arguments?.getLong("memberId")?.takeIf { it != -1L },
-                onBack   = { navController.popBackStack() }
+                editMemberId = back.arguments?.getLong("memberId")?.takeIf { it != -1L },
+                onBack       = { navController.popBackStack() }
             )
         }
 
@@ -198,7 +172,7 @@ fun InvestTrackNavHost(navController: NavHostController, onRequestPinSetup: () -
         ) { back ->
             AddEditSecurityScreen(
                 editSecurityId = back.arguments?.getLong("securityId")?.takeIf { it != -1L },
-                onBack     = { navController.popBackStack() }
+                onBack         = { navController.popBackStack() }
             )
         }
     }
