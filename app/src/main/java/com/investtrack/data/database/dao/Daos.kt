@@ -3,12 +3,8 @@ package com.investtrack.data.database.dao
 import androidx.room.*
 import com.investtrack.data.database.entities.*
 import kotlinx.coroutines.flow.Flow
-import com.investtrack.data.database.entities.LoanRateChange
 
-// ─────────────────────────────────────────────────────────
-// FamilyMember DAO
-// ─────────────────────────────────────────────────────────
-
+// ── FamilyMember DAO ──────────────────────────────────────────────────────────
 @Dao
 interface FamilyMemberDao {
     @Query("SELECT * FROM family_members WHERE isActive = 1 ORDER BY name")
@@ -27,10 +23,7 @@ interface FamilyMemberDao {
     suspend fun softDelete(id: Long)
 }
 
-// ─────────────────────────────────────────────────────────
-// Nominee DAO
-// ─────────────────────────────────────────────────────────
-
+// ── Nominee DAO ───────────────────────────────────────────────────────────────
 @Dao
 interface NomineeDao {
     @Query("SELECT * FROM nominees WHERE familyMemberId = :memberId")
@@ -49,10 +42,7 @@ interface NomineeDao {
     suspend fun deleteAllForMember(memberId: Long)
 }
 
-// ─────────────────────────────────────────────────────────
-// SecurityMaster DAO
-// ─────────────────────────────────────────────────────────
-
+// ── SecurityMaster DAO ────────────────────────────────────────────────────────
 @Dao
 interface SecurityMasterDao {
     @Query("SELECT * FROM security_master WHERE isActive = 1 ORDER BY securityName")
@@ -77,10 +67,7 @@ interface SecurityMasterDao {
     suspend fun softDelete(id: Long)
 }
 
-// ─────────────────────────────────────────────────────────
-// Transaction DAO
-// ─────────────────────────────────────────────────────────
-
+// ── Transaction DAO ───────────────────────────────────────────────────────────
 @Dao
 interface TransactionDao {
     @Query("SELECT * FROM transactions ORDER BY transactionDate DESC")
@@ -95,11 +82,11 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE familyMemberId = :memberId AND securityId = :securityId ORDER BY transactionDate ASC")
     suspend fun getTransactionsByMemberAndSecurity(memberId: Long, securityId: Long): List<Transaction>
 
+    @Query("SELECT * FROM transactions WHERE securityId = :securityId ORDER BY transactionDate ASC")
+    suspend fun getAllTransactionsForSecurity(securityId: Long): List<Transaction>
+
     @Query("SELECT * FROM transactions ORDER BY transactionDate DESC LIMIT :limit")
     fun getRecentTransactions(limit: Int = 10): Flow<List<Transaction>>
-
-    @Query("SELECT DISTINCT securityId FROM transactions WHERE familyMemberId = :memberId")
-    suspend fun getDistinctSecurityIds(memberId: Long): List<Long>
 
     @Query("SELECT DISTINCT securityId FROM transactions")
     suspend fun getAllDistinctSecurityIds(): List<Long>
@@ -117,10 +104,7 @@ interface TransactionDao {
     suspend fun delete(transaction: Transaction)
 }
 
-// ─────────────────────────────────────────────────────────
-// PriceHistory DAO
-// ─────────────────────────────────────────────────────────
-
+// ── PriceHistory DAO ──────────────────────────────────────────────────────────
 @Dao
 interface PriceHistoryDao {
     @Query("SELECT * FROM price_history WHERE securityId = :securityId ORDER BY priceDate DESC")
@@ -139,10 +123,7 @@ interface PriceHistoryDao {
     suspend fun deletePrice(securityId: Long, date: Long)
 }
 
-// ─────────────────────────────────────────────────────────
-// Loan DAO
-// ─────────────────────────────────────────────────────────
-
+// ── Loan DAO ──────────────────────────────────────────────────────────────────
 @Dao
 interface LoanDao {
     @Query("SELECT * FROM loans WHERE isActive = 1 ORDER BY disbursementDate DESC")
@@ -164,10 +145,7 @@ interface LoanDao {
     suspend fun softDelete(id: Long)
 }
 
-// ─────────────────────────────────────────────────────────
-// LoanPayment DAO
-// ─────────────────────────────────────────────────────────
-
+// ── LoanPayment DAO ───────────────────────────────────────────────────────────
 @Dao
 interface LoanPaymentDao {
     @Query("SELECT * FROM loan_payments WHERE loanId = :loanId ORDER BY paymentDate ASC")
@@ -192,10 +170,7 @@ interface LoanPaymentDao {
     suspend fun delete(payment: LoanPayment)
 }
 
-// ─────────────────────────────────────────────────────────
-// SipPlan DAO
-// ─────────────────────────────────────────────────────────
-
+// ── SipPlan DAO ───────────────────────────────────────────────────────────────
 @Dao
 interface SipPlanDao {
     @Query("SELECT * FROM sip_plans WHERE isActive = 1")
@@ -214,6 +189,7 @@ interface SipPlanDao {
     suspend fun deactivate(id: Long)
 }
 
+// ── LoanRateChange DAO ────────────────────────────────────────────────────────
 @Dao
 interface LoanRateChangeDao {
     @Query("SELECT * FROM loan_rate_changes WHERE loanId = :loanId ORDER BY effectiveDate ASC")
