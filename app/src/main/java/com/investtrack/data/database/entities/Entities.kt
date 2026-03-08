@@ -119,6 +119,10 @@ data class SecurityMaster(
         ForeignKey(SecurityMaster::class, ["id"], ["securityId"], ForeignKey.CASCADE)
     ],
     indices = [Index("familyMemberId"), Index("securityId")]
+),
+        ForeignKey(SecurityMaster::class, ["id"], ["securityId"], ForeignKey.CASCADE)
+    ],
+    indices = [Index("familyMemberId"), Index("securityId")]
 )
 data class Transaction(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
