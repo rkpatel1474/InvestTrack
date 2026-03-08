@@ -58,7 +58,7 @@ object AppModule {
     fun providePriceRepository(dao: PriceHistoryDao) = PriceRepository(dao)
 
     @Provides @Singleton
-    fun provideLoanRepository(ld: LoanDao, pd: LoanPaymentDao, rd: LoanRateChangeDao) = LoanRepository(ld, pd, rd)
+    fun provideLoanRepository(loanDao: LoanDao, paymentDao: LoanPaymentDao) = LoanRepository(loanDao, paymentDao)
 
     @Provides @Singleton
     fun providePortfolioRepository(td: TransactionDao, ph: PriceHistoryDao, sm: SecurityMasterDao) =

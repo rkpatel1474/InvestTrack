@@ -142,19 +142,19 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
                     name = it.securityName; code = it.securityCode; type = it.securityType
                     assetClass = it.assetClass; isin = it.isin; amc = it.sector
                     mfSchemeType = it.mfSchemeType ?: MFSchemeType.OTHER
-                    exitLoad = it.exitLoadPercent?.toString() ?: ""; expenseRatio = it.expenseRatio?.toString() ?: ""
+                    exitLoad = ""; expenseRatio = ""
                     couponRate = it.couponRate?.toString() ?: ""
                     couponFreq = it.couponFrequency ?: CouponFrequency.ANNUALLY
-                    faceValue = it.faceValue?.toString() ?: ""; creditRating = it.creditRating
-                    interestRate = it.interestRate?.toString() ?: ""; fdTenure = it.fdTenureMonths?.toString() ?: ""
-                    pfAccountNo = it.pfAccountNumber; uanNumber = it.uanNumber
+                    faceValue = it.faceValue?.toString() ?: ""; creditRating = ""
+                    interestRate = ""; fdTenure = ""
+                    pfAccountNo = ""; uanNumber = ""
                     insType = it.insuranceType ?: InsuranceType.TERM
-                    sumAssured = it.sumAssured?.toString() ?: ""; policyNo = it.policyNumber; insurerName = it.insurerName
-                    policyTerm = it.policyTerm?.toString() ?: ""; premTerm = it.premiumTerm?.toString() ?: ""
+                    sumAssured = it.sumAssured?.toString() ?: ""; policyNo = ""; insurerName = ""
+                    policyTerm = ""; premTerm = ""
                     premFreq = it.premiumFrequency ?: CouponFrequency.ANNUALLY
-                    propertyAddress = it.propertyAddress; propertyType = it.propertyType
-                    carpetArea = it.carpetArea?.toString() ?: ""
-                    goldPurity = it.goldPurity; goldForm = it.goldForm; cryptoSymbol = it.cryptoSymbol
+                    propertyAddress = ""; propertyType = ""
+                    carpetArea = ""
+                    goldPurity = ""; goldForm = it.goldForm; cryptoSymbol = it.cryptoSymbol
                     maturityDate = it.maturityDate
                 }
             }

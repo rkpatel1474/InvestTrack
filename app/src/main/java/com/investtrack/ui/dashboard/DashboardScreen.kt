@@ -335,7 +335,7 @@ fun ReturnDetailCard(s: PortfolioSummary) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 ReturnItem("XIRR", s.xirr?.let { "%.2f%%".format(it) } ?: "—", if ((s.xirr ?: 0.0) >= 0) GainColor else LossColor)
                 ReturnItem("CAGR", s.cagr?.let { "%.2f%%".format(it) } ?: "—", if ((s.cagr ?: 0.0) >= 0) GainColor else LossColor)
-                ReturnItem("Holdings", "${s.assetClassBreakdown.values.sumOf { 1 }}", MaterialTheme.colorScheme.onSurface)
+                ReturnItem("Holdings", "${s.assetClassBreakdown.values.count()}", MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.weight(1f))
             }
         }

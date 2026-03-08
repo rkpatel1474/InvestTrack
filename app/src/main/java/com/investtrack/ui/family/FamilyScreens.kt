@@ -77,7 +77,7 @@ fun MemberCard(member: FamilyMember, onEdit: () -> Unit, onDelete: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(member.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 PillChip(member.relationship.name, MaterialTheme.colorScheme.secondary)
-                if (member.panNumber.isNotEmpty()) Text("PAN: ${member.panNumber}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (member.panNumberNumber.isNotEmpty()) Text("PAN: ${member.panNumberNumber}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary) }
             IconButton(onClick = { showConfirm = true }) { Icon(Icons.Default.Delete, null, tint = LossColor) }

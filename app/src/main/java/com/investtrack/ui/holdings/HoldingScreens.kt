@@ -118,21 +118,21 @@ fun HoldingsScreen(onAddTransaction: (Long) -> Unit, onBack: () -> Unit, vm: Hol
                 val filtered = if (filter == "ALL") s.holdings
                 else s.holdings.filter { h ->
                     when (filter) {
-                        "MF"     -> h.holding.securityType.name == "MUTUAL_FUND"
-                        "SHARES" -> h.holding.securityType.name == "SHARES"
-                        "FD"     -> h.holding.securityType.name == "FD"
-                        "BONDS"  -> h.holding.securityType.name in listOf("BOND","GOI_BOND")
-                        "NPS"    -> h.holding.securityType.name in listOf("NPS","PF")
-                        "GOLD"   -> h.holding.securityType.name == "GOLD"
-                        else     -> h.holding.securityType.name in listOf("INSURANCE","PROPERTY","CRYPTO","OTHER")
+                        "MF"     -> h.securityType.name == "MUTUAL_FUND"
+                        "SHARES" -> h.securityType.name == "SHARES"
+                        "FD"     -> h.securityType.name == "FD"
+                        "BONDS"  -> h.securityType.name in listOf("BOND","GOI_BOND")
+                        "NPS"    -> h.securityType.name in listOf("NPS","PF")
+                        "GOLD"   -> h.securityType.name == "GOLD"
+                        else     -> h.securityType.name in listOf("INSURANCE","PROPERTY","CRYPTO","OTHER")
                         }
                 }
 
                 if (filtered.isEmpty()) {
                     item { EmptyState("No holdings for this filter.") }
                 } else {
-                    items(filtered.sortedByDescending { it.marketValue }, key = { it.security.id }) { h ->
-                        HoldingCard(h, onClick = { onAddTransaction(h.security.id) }, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                    items(filtered.sortedByDescending { it.marketValue }, key = { it.securityId }) { h ->
+                        HoldingCard(h, onClick = { onAddTransaction(h.securityId) }, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
                     }
                 }
             } ?: run {
@@ -161,12 +161,12 @@ fun HoldingCard(h: HoldingSummary, onClick: () -> Unit, modifier: Modifier = Mod
                     modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.primary.copy(0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(h.holding.securityName.take(2).uppercase(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                    Text(h.securityName.take(2).uppercase(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
                 }
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(h.holding.securityName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                    PillChip(h.holding.securityType.name.replace("_"," "), MaterialTheme.colorScheme.secondary)
+                    Text(h.securityName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                    PillChip(h.securityType.name.replace("_"," "), MaterialTheme.colorScheme.secondary)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(formatAmount(h.marketValue), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
