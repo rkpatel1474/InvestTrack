@@ -141,7 +141,7 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
                 s?.let {
                     name = it.securityName; code = it.securityCode; type = it.securityType
                     assetClass = it.assetClass; isin = it.isin; amc = it.sector
-                    schemeType = it.mfSchemeType ?: MFSchemeType.OTHER
+                    schemeType = it.schemeType ?: MFSchemeType.OTHER
                     exitLoad = ""; expenseRatio = ""
                     couponRate = it.couponRate?.toString() ?: ""
                     couponFreq = it.couponFrequency ?: CouponFrequency.ANNUALLY
@@ -171,7 +171,7 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
                         val s = SecurityMaster(
                             id = editSecurityId ?: 0L, securityName = name.trim(), securityCode = code.trim(),
                             securityType = type, assetClass = assetClass, isin = isin.trim(), sector = amc.trim(),
-                            mfSchemeType = if (type == SecurityType.MUTUAL_FUND) schemeType else null,
+                            schemeType = if (type == SecurityType.MUTUAL_FUND) schemeType else null,
                             exitLoadPercent = exitLoad.toDoubleOrNull(), expenseRatio = expenseRatio.toDoubleOrNull(),
                             couponRate = couponRate.toDoubleOrNull(), couponFrequency = if (couponRate.isNotEmpty()) couponFreq else null,
                             maturityDate = maturityDate, faceValue = faceValue.toDoubleOrNull(), creditRating = creditRating,
@@ -209,7 +209,7 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
                 item {
                     FormCard("Mutual Fund Details") {
                         InputField("AMC Name", amc, { amc = it })
-                        DropdownField("Scheme Type", MFSchemeType.values().toList(), schemeType, { mfSchemeType = it }, { it.name.replace("_"," ") })
+                        DropdownField("Scheme Type", MFSchemeType.values().toList(), schemeType, { schemeType = it }, { it.name.replace("_"," ") })
                         InputField("Exit Load (%)", exitLoad, { exitLoad = it }, keyboardType = KeyboardType.Decimal)
                         InputField("Expense Ratio (%)", expenseRatio, { expenseRatio = it }, keyboardType = KeyboardType.Decimal)
                     }

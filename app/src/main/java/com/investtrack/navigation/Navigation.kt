@@ -64,8 +64,9 @@ fun InvestTrackNavHost(navController: NavHostController, onRequestPinSetup: () -
 
         composable(Screen.Holdings.route) {
             HoldingsScreen(
-                onAddTransaction = { sid -> navController.navigate(Screen.AddTransaction.createRoute(sid)) },
-                onBack           = { navController.popBackStack() }
+                onHoldingClick = { sid -> navController.navigate(Screen.AddTransaction.createRoute(sid)) },
+                onUpdatePrice  = { sid -> navController.navigate(Screen.PriceUpdate.createRoute(sid)) },
+                onBack         = { navController.popBackStack() }
             )
         }
 
