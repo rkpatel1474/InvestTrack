@@ -241,7 +241,7 @@ fun AddEditMemberScreen(
                                 onUpdate = { nominees = nominees.toMutableList().also { l -> l[idx] = it } },
                                 onDelete = { nominees = nominees.toMutableList().also { l -> l.removeAt(idx) } }
                             )
-                            if (idx < nominees.lastIndex) HorizontalDivider()
+                            if (idx < nominees.lastIndex) Divider()
                         }
                     }
                 }

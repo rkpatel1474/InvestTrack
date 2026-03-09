@@ -108,6 +108,19 @@ fun SectionHeader(title: String, action: String = "", onAction: () -> Unit = {})
     }
 }
 
+// Overload that accepts a composable trailing action slot (fixes @Composable-in-lambda errors)
+@Composable
+fun SectionHeader(title: String, trailingContent: @Composable () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        trailingContent()
+    }
+}
+
 // ─── Amount Display ───────────────────────────────────────────────────────────
 @Composable
 fun AmountText(amount: Double, isHidden: Boolean = false, style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyMedium, color: Color = MaterialTheme.colorScheme.onSurface, fontWeight: FontWeight = FontWeight.Normal) {
@@ -229,10 +242,12 @@ fun <T> DropdownField(
 // ─── Date Field ───────────────────────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DateField(label: String, value: Long, onValueChange: (Long) -> Unit, modifier: Modifier = Modifier) {
+fun DateField(label: String, value: Long?, onValueChange: (Long) -> Unit, modifier: Modifier = Modifier) {
     var showPicker by remember { mutableStateOf(false) }
     val displayText = remember(value) {
-        java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(value))
+        if (value != null)
+            java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(value))
+        else ""
     }
     OutlinedTextField(
         value = displayText,
