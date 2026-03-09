@@ -140,7 +140,7 @@ fun SettingsScreen(
                         )
                         SettingsDivider()
                         SettingsRow(
-                            icon = Icons.Default.Pin,
+                            icon = Icons.Default.Password,
                             iconColor = MaterialTheme.colorScheme.secondary,
                             title = "Change PIN",
                             subtitle = "Update your security PIN",

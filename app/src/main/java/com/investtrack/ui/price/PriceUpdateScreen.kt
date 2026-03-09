@@ -60,7 +60,7 @@ fun PriceUpdateScreen(preSelectedSecurityId: Long? = null, onBack: () -> Unit, v
 
     val priceHistory by remember(selectedSecurity) {
         if (selectedSecurity != null) vm.getPriceHistory(selectedSecurity!!.id)
-        else kotlinx.coroutines.flow.MutableStateFlow(emptyList())
+        else kotlinx.coroutines.flow.MutableStateFlow(emptyList<com.investtrack.data.database.entities.PriceHistory>())
     }.collectAsState(emptyList())
 
     LaunchedEffect(preSelectedSecurityId, securities) {

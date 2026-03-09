@@ -523,7 +523,7 @@ fun securityTypeIcon(type: SecurityType): ImageVector = when (type) {
     SecurityType.MUTUAL_FUND -> Icons.Default.PieChart
     SecurityType.SHARES      -> Icons.Default.TrendingUp
     SecurityType.BOND, SecurityType.GOI_BOND -> Icons.Default.AccountBalance
-    SecurityType.NPS         -> Icons.Default.Elderly
+    SecurityType.NPS         -> Icons.Default.Person
     SecurityType.PF          -> Icons.Default.Work
     SecurityType.FD          -> Icons.Default.Savings
     SecurityType.INSURANCE   -> Icons.Default.Security

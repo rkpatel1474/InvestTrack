@@ -18,6 +18,7 @@ import com.investtrack.ui.loan.LoanListScreen
 import com.investtrack.ui.loan.AddEditLoanScreen
 import com.investtrack.ui.loan.LoanDetailScreen
 import com.investtrack.ui.holdings.HoldingsScreen
+import com.investtrack.ui.more.MoreScreen
 import com.investtrack.ui.settings.SettingsScreen
 
 sealed class Screen(val route: String) {
@@ -128,9 +129,11 @@ fun InvestTrackNavHost(navController: NavHostController, onRequestPinSetup: () -
         }
 
         composable(Screen.More.route) {
-            SettingsScreen(
-                onSetupPin = onRequestPinSetup,
-                onBack     = { navController.popBackStack() }
+            MoreScreen(
+                onNavigateToFamily      = { navController.navigate(Screen.FamilyList.route) },
+                onNavigateToSecurity    = { navController.navigate(Screen.SecurityList.route) },
+                onNavigateToPriceUpdate = { navController.navigate(Screen.PriceUpdate.createRoute()) },
+                onNavigateToSettings    = { navController.navigate(Screen.Settings.route) }
             )
         }
 
