@@ -264,7 +264,7 @@ fun HoldingDetailScreen(
                 }
             }
             if (priceHistory.isNotEmpty()) {
-                item { SectionHeader("Recent Prices") { TextButton(onClick = { onUpdatePrice(securityId) }) { Text("Update") } } }
+                item { item { SectionHeader("Recent Prices") } { TextButton(onClick = { onUpdatePrice(securityId) }) { Text("Update") } } }
                 items(priceHistory.take(5)) { ph ->
                     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(ph.priceDate.toDisplayDate(), style = MaterialTheme.typography.bodySmall)
@@ -272,7 +272,7 @@ fun HoldingDetailScreen(
                     }
                 }
             }
-            item { SectionHeader("Transaction History") { TextButton(onClick = { onAddTransaction(securityId) }) { Text("Add") } } }
+            item { item { SectionHeader("Transaction History") } { TextButton(onClick = { onAddTransaction(securityId) }) { Text("Add") } } }
             if (transactions.isEmpty()) item { EmptyState("No transactions yet.") }
             items(transactions) { txn ->
                 val memberName = members.find { it.id == txn.familyMemberId }?.name ?: "Unknown"

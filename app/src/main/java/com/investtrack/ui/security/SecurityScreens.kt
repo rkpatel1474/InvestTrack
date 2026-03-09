@@ -169,23 +169,22 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
                 Button(
                     onClick = {
                         val s = SecurityMaster(
-                            id = editSecurityId ?: 0L, securityName = name.trim(), securityCode = code.trim(),
-                            securityType = type, assetClass = assetClass, isin = isin.trim(), sector = amc.trim(),
-                            schemeType = if (type == SecurityType.MUTUAL_FUND) schemeType else null,
-                            exitLoadPercent = exitLoad.toDoubleOrNull(), expenseRatio = expenseRatio.toDoubleOrNull(),
-                            couponRate = couponRate.toDoubleOrNull(), couponFrequency = if (couponRate.isNotEmpty()) couponFreq else null,
-                            maturityDate = maturityDate, faceValue = faceValue.toDoubleOrNull(), creditRating = creditRating,
-                            interestRate = interestRate.toDoubleOrNull(), fdTenureMonths = fdTenure.toIntOrNull(),
-                            pfAccountNumber = pfAccountNo, uanNumber = uanNumber,
-                            insuranceType = if (type == SecurityType.INSURANCE) insType else null,
-                            sumAssured = sumAssured.toDoubleOrNull(), policyNumber = policyNo, insurerName = insurerName,
-                            policyTerm = policyTerm.toIntOrNull(), premiumTerm = premTerm.toIntOrNull(),
-                            premiumFrequency = if (type == SecurityType.INSURANCE) premFreq else null,
-                            propertyAddress = propertyAddress, propertyType = propertyType,
-                            carpetArea = carpetArea.toDoubleOrNull(),
-                            goldPurity = goldPurity, goldForm = goldForm, cryptoSymbol = cryptoSymbol
-                        )
-                        vm.save(s) { onBack() }
+                                        id           = editSecurityId ?: 0L,
+                                        securityCode = code.trim(),
+                                        securityName = name.trim(),
+                                        securityType = type,
+                                        assetClass   = assetClass,
+                                        isin         = isin.trim(),
+                                        sector       = amc.trim(),
+                                        mfSchemeType = if (type == SecurityType.MUTUAL_FUND) schemeType else null,
+                                        couponRate   = couponRate.toDoubleOrNull(),
+                                        couponFrequency = if (couponRate.isNotEmpty()) couponFreq else null,
+                                        maturityDate = maturityDate,
+                                        faceValue    = faceValue.toDoubleOrNull(),
+                                        insuranceType = if (type == SecurityType.INSURANCE) insType else null,
+                                        sumAssured   = sumAssured.toDoubleOrNull()
+                                    )
+                                    vm.save(s) { onBack() }
                     },
                     modifier = Modifier.fillMaxWidth().padding(16.dp), enabled = name.isNotBlank() && code.isNotBlank(),
                     shape = RoundedCornerShape(12.dp)
