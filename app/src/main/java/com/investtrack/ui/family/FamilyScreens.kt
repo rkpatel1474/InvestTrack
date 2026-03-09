@@ -225,7 +225,10 @@ fun AddEditMemberScreen(
                             Text("Nominees", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             TextButton(onClick = {
                                 nominees = nominees + Nominee(
-                                    familyMemberId = editMemberId ?: 0L,) 100.0 else 0.0
+                                    familyMemberId = editMemberId ?: 0L,
+                                    nomineeName    = "",
+                                    relationship   = Relationship.SELF,
+                                    percentage     = if (nominees.isEmpty()) 100.0 else 0.0
                                 )
                             }) { Icon(Icons.Default.Add, null); Text("Add") }
                         }
