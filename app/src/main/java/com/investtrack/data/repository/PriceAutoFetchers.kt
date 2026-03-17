@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
+import java.io.InputStream
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
@@ -131,15 +132,45 @@ object PriceAutoFetchers {
         val symbol = yahooSymbol.trim().uppercase(Locale.US)
         require(symbol.isNotEmpty()) { "Yahoo symbol is empty" }
 
-        val url = URL("https://query1.finance.yahoo.com/v7/finance/quote?symbols=$symbol")
-        val conn = (url.openConnection() as HttpURLConnection).apply {
-            connectTimeout = 20_000
-            readTimeout = 20_000
-            requestMethod = "GET"
-            setRequestProperty("User-Agent", "InvestTrack/1.0")
+        fun readStream(stream: InputStream?): String {
+            if (stream == null) return ""
+            return stream.use { it.readBytes().toString(Charsets.UTF_8) }
         }
 
-        val json = conn.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
+        fun request(host: String): String {
+            val url = URL("https://$host/v7/finance/quote?symbols=$symbol")
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                connectTimeout = 20_000
+                readTimeout = 20_000
+                requestMethod = "GET"
+                setRequestProperty(
+                    "User-Agent",
+                    "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
+                )
+                setRequestProperty("Accept", "application/json")
+                setRequestProperty("Accept-Language", "en-US,en;q=0.9")
+                setRequestProperty("Connection", "keep-alive")
+            }
+
+            val code = conn.responseCode
+            val body = if (code in 200..299) readStream(conn.inputStream) else readStream(conn.errorStream)
+            if (code !in 200..299) {
+                val hint = when (code) {
+                    401, 403 -> "Yahoo blocked the request (HTTP $code)."
+                    429 -> "Yahoo rate-limited the request (HTTP 429). Try again later."
+                    else -> "Yahoo request failed (HTTP $code)."
+                }
+                throw IllegalStateException("$hint URL: ${url}. ${body.take(250)}")
+            }
+            return body
+        }
+
+        // Yahoo sometimes blocks query1; try query1 then query2.
+        val json = try {
+            request("query1.finance.yahoo.com")
+        } catch (_: Exception) {
+            request("query2.finance.yahoo.com")
+        }
 
         val root = Gson().fromJson(json, YahooQuoteRoot::class.java)
         val quote = root?.quoteResponse?.result?.firstOrNull()
