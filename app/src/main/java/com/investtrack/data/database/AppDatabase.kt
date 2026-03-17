@@ -39,7 +39,7 @@ import com.investtrack.data.database.entities.Transaction
         LoanPayment::class,
         SipPlan::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -67,6 +67,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE security_master ADD COLUMN amfiSchemeCode TEXT NOT NULL DEFAULT ''")
+                database.execSQL("ALTER TABLE security_master ADD COLUMN yahooSymbol TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -75,6 +82,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "investtrack.db"
                 )
                 .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_2_3)
                 .fallbackToDestructiveMigration()
                 .build()
                 .also { INSTANCE = it }

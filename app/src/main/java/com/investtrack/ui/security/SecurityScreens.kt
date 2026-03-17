@@ -125,6 +125,8 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
     var type by remember { mutableStateOf(SecurityType.MUTUAL_FUND) }
     var assetClass by remember { mutableStateOf(AssetClass.EQUITY) }
     var isin by remember { mutableStateOf("") }
+    var amfiSchemeCode by remember { mutableStateOf("") }
+    var yahooSymbol by remember { mutableStateOf("") }
     var amc by remember { mutableStateOf("") }
     var schemeType by remember { mutableStateOf(MFSchemeType.OTHER) }
     var exitLoad by remember { mutableStateOf("") }
@@ -158,6 +160,8 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
                 s?.let {
                     name = it.securityName; code = it.securityCode; type = it.securityType
                     assetClass = it.assetClass; isin = it.isin; amc = it.sector
+                    amfiSchemeCode = it.amfiSchemeCode
+                    yahooSymbol = it.yahooSymbol
                     schemeType = it.mfSchemeType ?: MFSchemeType.OTHER
                     exitLoad = ""; expenseRatio = ""
                     couponRate = it.couponRate?.toString() ?: ""
@@ -192,6 +196,8 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
                                         securityType = type,
                                         assetClass   = assetClass,
                                         isin         = isin.trim(),
+                                        amfiSchemeCode = amfiSchemeCode.trim(),
+                                        yahooSymbol = yahooSymbol.trim(),
                                         sector       = amc.trim(),
                                         mfSchemeType = if (type == SecurityType.MUTUAL_FUND) schemeType else null,
                                         couponRate   = couponRate.toDoubleOrNull(),
@@ -224,10 +230,22 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
             if (type == SecurityType.MUTUAL_FUND) {
                 item {
                     FormCard("Mutual Fund Details") {
+                        InputField("AMFI Scheme Code", amfiSchemeCode, { amfiSchemeCode = it.trim() }, keyboardType = KeyboardType.Number)
                         InputField("AMC Name", amc, { amc = it })
                         DropdownField("Scheme Type", MFSchemeType.values().toList(), schemeType, { schemeType = it }, { it.name.replace("_"," ") })
                         InputField("Exit Load (%)", exitLoad, { exitLoad = it }, keyboardType = KeyboardType.Decimal)
                         InputField("Expense Ratio (%)", expenseRatio, { expenseRatio = it }, keyboardType = KeyboardType.Decimal)
+                    }
+                }
+            }
+            if (type == SecurityType.SHARES) {
+                item {
+                    FormCard("Shares Details") {
+                        InputField(
+                            "Yahoo Symbol (e.g., TCS.NS)",
+                            yahooSymbol,
+                            { yahooSymbol = it.trim().uppercase() },
+                        )
                     }
                 }
             }

@@ -54,6 +54,11 @@ data class SecurityMaster(
     val securityName: String,
     val securityType: SecurityType,
     val assetClass: AssetClass,
+    // Auto price update identifiers
+    // - Mutual Funds: AMFI scheme code (used to fetch NAV from AMFI)
+    // - Shares: Yahoo symbol (e.g., RELIANCE.NS) for quote fetch
+    val amfiSchemeCode: String = "",
+    val yahooSymbol: String = "",
     val mfSchemeType: MFSchemeType? = null,
     val couponRate: Double? = null,
     val couponFrequency: CouponFrequency? = null,

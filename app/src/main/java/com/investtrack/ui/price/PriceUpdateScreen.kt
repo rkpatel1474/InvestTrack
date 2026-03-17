@@ -19,8 +19,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.investtrack.data.database.entities.PriceHistory
 import com.investtrack.data.database.entities.SecurityMaster
+import com.investtrack.data.database.entities.SecurityType
 import com.investtrack.data.repository.PriceRepository
 import com.investtrack.data.repository.SecurityRepository
+import com.investtrack.data.repository.PriceAutoFetchers
 import com.investtrack.ui.common.*
 import com.investtrack.utils.DateUtils.toDisplayDate
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -45,6 +47,32 @@ class PriceUpdateViewModel @Inject constructor(
         onDone()
     }
     fun deletePrice(secId: Long, date: Long) = viewModelScope.launch { priceRepo.deletePrice(secId, date) }
+
+    suspend fun getSecurityById(id: Long) = secRepo.getSecurityById(id)
+
+    fun autoFetchLatestPrice(sec: SecurityMaster, onDone: (Result<PriceHistory>) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val fetched = when (sec.securityType) {
+                    SecurityType.MUTUAL_FUND -> PriceAutoFetchers.fetchAmfiNav(sec.amfiSchemeCode)
+                    SecurityType.SHARES -> PriceAutoFetchers.fetchYahooQuote(sec.yahooSymbol)
+                    else -> throw IllegalStateException("Auto fetch supported only for Mutual Funds and Shares")
+                }
+
+                val priceDate = fetched.epochMillis ?: System.currentTimeMillis()
+                val ph = PriceHistory(
+                    securityId = sec.id,
+                    priceDate = priceDate,
+                    price = fetched.price,
+                    source = fetched.source
+                )
+                priceRepo.insertPrice(ph)
+                onDone(Result.success(ph))
+            } catch (e: Exception) {
+                onDone(Result.failure(e))
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,6 +85,8 @@ fun PriceUpdateScreen(preSelectedSecurityId: Long? = null, onBack: () -> Unit, v
     var priceInput by remember { mutableStateOf("") }
     var priceDate by remember { mutableStateOf(System.currentTimeMillis()) }
     var showSuccess by remember { mutableStateOf(false) }
+    var isAutoFetching by remember { mutableStateOf(false) }
+    var autoFetchError by remember { mutableStateOf<String?>(null) }
 
     val priceHistory by remember(selectedSecurity) {
         if (selectedSecurity != null) vm.getPriceHistory(selectedSecurity!!.id)
@@ -143,6 +173,65 @@ fun PriceUpdateScreen(preSelectedSecurityId: Long? = null, onBack: () -> Unit, v
                     Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text("Enter Price / NAV", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+
+                            // Auto fetch latest price/NAV (AMFI for MF, Yahoo for Shares)
+                            val canAutoFetch = when (sec.securityType) {
+                                SecurityType.MUTUAL_FUND -> sec.amfiSchemeCode.isNotBlank()
+                                SecurityType.SHARES -> sec.yahooSymbol.isNotBlank()
+                                else -> false
+                            }
+                            if (canAutoFetch) {
+                                OutlinedButton(
+                                    onClick = {
+                                        isAutoFetching = true
+                                        autoFetchError = null
+                                        vm.autoFetchLatestPrice(sec) { result ->
+                                            isAutoFetching = false
+                                            result.fold(
+                                                onSuccess = { saved ->
+                                                    showSuccess = true
+                                                    priceInput = ""
+                                                    priceDate = saved.priceDate
+                                                },
+                                                onFailure = { err ->
+                                                    autoFetchError = err.message ?: "Auto update failed"
+                                                }
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    enabled = !isAutoFetching,
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    if (isAutoFetching) {
+                                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                                        Spacer(Modifier.width(10.dp))
+                                        Text("Fetching…")
+                                    } else {
+                                        Icon(Icons.Default.CloudDownload, null)
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("Auto Fetch Latest")
+                                    }
+                                }
+                            } else if (sec.securityType == SecurityType.MUTUAL_FUND || sec.securityType == SecurityType.SHARES) {
+                                EmptyState(
+                                    title = "Auto update not configured",
+                                    message = if (sec.securityType == SecurityType.MUTUAL_FUND)
+                                        "Add AMFI Scheme Code in Security Master to auto-fetch NAV."
+                                    else
+                                        "Add Yahoo Symbol (e.g., TCS.NS) in Security Master to auto-fetch price.",
+                                    icon = Icons.Default.Info
+                                )
+                            }
+
+                            autoFetchError?.let { msg ->
+                                ErrorBanner(
+                                    message = msg,
+                                    actionLabel = "Dismiss",
+                                    onAction = { autoFetchError = null }
+                                )
+                            }
+
                             DateField("Price Date", priceDate, { priceDate = it })
                             InputField("Price / NAV (₹)", priceInput, { priceInput = it; showSuccess = false }, keyboardType = KeyboardType.Decimal)
                             Button(
