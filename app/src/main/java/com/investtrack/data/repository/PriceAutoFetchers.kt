@@ -42,7 +42,7 @@ object PriceAutoFetchers {
             requestMethod = "GET"
             setRequestProperty("User-Agent", "InvestTrack/1.0")
         }
-        conn.inputStream.use { input ->
+        val fetched = conn.inputStream.use { input ->
             BufferedReader(InputStreamReader(input)).useLines { lines ->
                 // Find the first matching scheme code line (the file usually has only one entry per scheme per date)
                 val match = lines.firstOrNull { it.startsWith("$code;", ignoreCase = false) }
@@ -53,10 +53,10 @@ object PriceAutoFetchers {
                 val navStr = parts[4].trim()
                 val nav = navStr.toDoubleOrNull()
                     ?: throw IllegalStateException("Invalid NAV value: $navStr")
-                return@useLines FetchedPrice(price = nav, epochMillis = null, source = "AMFI")
+                FetchedPrice(price = nav, epochMillis = null, source = "AMFI")
             }
         }
-        throw IllegalStateException("Failed to read AMFI NAV")
+        fetched ?: throw IllegalStateException("Failed to read AMFI NAV")
     }
 
     /**
