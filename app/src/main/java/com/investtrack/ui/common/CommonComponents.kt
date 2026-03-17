@@ -298,19 +298,6 @@ fun PillChip(text: String, color: Color, modifier: Modifier = Modifier) {
     }
 }
 
-// ─── Empty State ──────────────────────────────────────────────────────────────
-@Composable
-fun EmptyState(message: String, icon: ImageVector = Icons.Default.Inbox) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.4f), modifier = Modifier.size(56.dp))
-        Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-    }
-}
-
 // ─── Gain/Loss Badge ──────────────────────────────────────────────────────────
 @Composable
 fun GainLossBadge(percent: Double) {
