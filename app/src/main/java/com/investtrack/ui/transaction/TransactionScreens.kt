@@ -64,11 +64,13 @@ import com.investtrack.data.database.entities.TransactionType
 import com.investtrack.data.repository.FamilyRepository
 import com.investtrack.data.repository.SecurityRepository
 import com.investtrack.data.repository.TransactionRepository
+import com.investtrack.ui.common.AppDimens
 import com.investtrack.ui.common.DateField
 import com.investtrack.ui.common.DropdownField
 import com.investtrack.ui.common.EmptyState
 import com.investtrack.ui.common.InputField
 import com.investtrack.ui.common.PillChip
+import com.investtrack.ui.common.SkeletonBlock
 import com.investtrack.ui.common.TopBarWithBack
 import com.investtrack.ui.theme.GainColor
 import com.investtrack.ui.theme.LossColor
@@ -95,6 +97,16 @@ class TransactionViewModel @Inject constructor(
     suspend fun getSecurity(id: Long) = securityRepo.getSecurityById(id)
     suspend fun getTransactionById(id: Long) = transactionRepo.getTransactionsByMember(-1L).let { null }
 
+    private val securityNameCache = mutableMapOf<Long, String>()
+    suspend fun getSecurityNameCached(id: Long): String {
+        if (id <= 0L) return "Unknown"
+        return securityNameCache[id] ?: run {
+            val name = getSecurity(id)?.securityName ?: "Unknown"
+            securityNameCache[id] = name
+            name
+        }
+    }
+
     fun saveTransaction(t: Transaction, onDone: () -> Unit) {
         viewModelScope.launch {
             if (t.id == 0L) transactionRepo.insert(t) else transactionRepo.update(t)
@@ -114,24 +126,34 @@ fun TransactionListScreen(
 ) {
     val transactions by vm.allTransactions.collectAsState()
     val members by vm.allMembers.collectAsState()
+    val memberNameById = remember(members) { members.associate { it.id to it.name } }
 
     Scaffold(topBar = { TopBarWithBack("Transactions", onBack) }) { padding ->
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(AppDimens.ScreenPadding),
             modifier = Modifier.fillMaxSize().padding(padding),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            if (transactions.isEmpty()) item { EmptyState("No transactions yet. Tap + to add one.") }
+            if (transactions.isEmpty()) {
+                item {
+                    EmptyState(
+                        title = "No transactions yet",
+                        message = "Add buys, SIPs, premiums, coupons, and sells to see history here.",
+                        icon = Icons.Default.ReceiptLong,
+                        actionLabel = "Add transaction",
+                        onAction = onAddTransaction
+                    )
+                }
+            }
             items(transactions, key = { it.id }) { txn ->
-                var secName by remember { mutableStateOf("") }
-                var memberName by remember { mutableStateOf("") }
-                LaunchedEffect(txn.id) {
-                    secName = vm.getSecurity(txn.securityId)?.securityName ?: "Unknown"
-                    memberName = members.find { it.id == txn.familyMemberId }?.name ?: "Unknown"
+                var secName by remember(txn.securityId) { mutableStateOf<String?>(null) }
+                val memberName = memberNameById[txn.familyMemberId] ?: "Unknown"
+                LaunchedEffect(txn.securityId) {
+                    secName = vm.getSecurityNameCached(txn.securityId)
                 }
                 TransactionCard(
                     txn = txn,
-                    secName = secName,
+                    secName = secName ?: "",
                     memberName = memberName,
                     onEdit = { onEditTransaction(txn.id) },
                     onDelete = { vm.deleteTransaction(txn) }
@@ -150,7 +172,8 @@ fun TransactionCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val isBuy = txn.transactionType in listOf(
+    // Outflow from user's pocket (invest / buy / premium / deposit into instruments)
+    val isOutflow = txn.transactionType in listOf(
         TransactionType.BUY, TransactionType.SIP, TransactionType.INVEST,
         TransactionType.DEPOSIT, TransactionType.PREMIUM
     )
@@ -166,14 +189,14 @@ fun TransactionCard(
             // Type indicator icon
             Surface(
                 shape = CircleShape,
-                color = if (isBuy) GainColor.copy(0.15f) else LossColor.copy(0.15f),
+                color = if (isOutflow) LossColor.copy(0.15f) else GainColor.copy(0.15f),
                 modifier = Modifier.size(42.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        if (isBuy) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward,
+                        if (isOutflow) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward,
                         null,
-                        tint = if (isBuy) GainColor else LossColor,
+                        tint = if (isOutflow) LossColor else GainColor,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -211,7 +234,7 @@ fun TransactionCard(
             Text(
                 FinancialUtils.formatCurrency(amount),
                 fontWeight = FontWeight.Bold,
-                color = if (isBuy) MaterialTheme.colorScheme.onSurface else LossColor,
+                color = if (isOutflow) LossColor else GainColor,
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(Modifier.width(4.dp))
@@ -270,6 +293,7 @@ fun AddTransactionScreen(
     var securityQuery by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf(listOf<SecurityMaster>()) }
     var showSearch by remember { mutableStateOf(false) }
+    var isSearching by remember { mutableStateOf(false) }
     var txnDate by remember { mutableStateOf(System.currentTimeMillis()) }
     var txnType by remember { mutableStateOf(TransactionType.BUY) }
     var units by remember { mutableStateOf("") }
@@ -295,6 +319,22 @@ fun AddTransactionScreen(
                 selectedSecurity?.let { securityQuery = it.securityName }
             }
         }
+    }
+
+    // Debounced security search (reduces jank + unnecessary DB work)
+    LaunchedEffect(securityQuery, isEditing) {
+        if (isEditing) return@LaunchedEffect
+        val q = securityQuery.trim()
+        if (!showSearch) return@LaunchedEffect
+        if (q.length < 2) {
+            searchResults = emptyList()
+            isSearching = false
+            return@LaunchedEffect
+        }
+        isSearching = true
+        kotlinx.coroutines.delay(250)
+        searchResults = vm.searchSecurities(q)
+        isSearching = false
     }
 
     // Set member after members load
@@ -365,7 +405,7 @@ fun AddTransactionScreen(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(AppDimens.ScreenPadding),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
@@ -378,7 +418,6 @@ fun AddTransactionScreen(
                             onValueChange = { q ->
                                 securityQuery = q
                                 showSearch = true
-                                scope.launch { searchResults = vm.searchSecurities(q) }
                             },
                             label = { Text("Search Security *") },
                             trailingIcon = { Icon(Icons.Default.Search, null) },
@@ -387,7 +426,13 @@ fun AddTransactionScreen(
                             singleLine = true,
                             readOnly = isEditing
                         )
-                        if (showSearch && searchResults.isNotEmpty() && !isEditing) {
+                        if (showSearch && !isEditing) {
+                            if (isSearching) {
+                                SkeletonBlock(
+                                    modifier = Modifier.fillMaxWidth().height(92.dp),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                            } else if (searchResults.isNotEmpty()) {
                             Card(shape = RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(8.dp)) {
                                 searchResults.take(5).forEach { sec ->
                                     ListItem(
@@ -402,6 +447,13 @@ fun AddTransactionScreen(
                                     )
                                     Divider()
                                 }
+                            }
+                            } else if (securityQuery.trim().length >= 2) {
+                                EmptyState(
+                                    title = "No results",
+                                    message = "Try a different name or code.",
+                                    icon = Icons.Default.Search
+                                )
                             }
                         }
                         selectedSecurity?.let {

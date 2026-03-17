@@ -58,6 +58,7 @@ import com.investtrack.data.database.entities.LoanPayment
 import com.investtrack.data.database.entities.LoanType
 import com.investtrack.data.repository.FamilyRepository
 import com.investtrack.data.repository.LoanRepository
+import com.investtrack.ui.common.AppDimens
 import com.investtrack.ui.common.DateField
 import com.investtrack.ui.common.DropdownField
 import com.investtrack.ui.common.EmptyState
@@ -134,7 +135,11 @@ fun LoanListScreen(onAddLoan: () -> Unit, onLoanDetail: (Long) -> Unit, onBack: 
     val totalEMI = loans.sumOf { it.emiAmount }
 
     Scaffold(topBar = { TopBarWithBack("Loans", onBack) }) { padding ->
-        LazyColumn(contentPadding = PaddingValues(16.dp), modifier = Modifier.fillMaxSize().padding(padding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(
+            contentPadding = PaddingValues(AppDimens.ScreenPadding),
+            modifier = Modifier.fillMaxSize().padding(padding),
+            verticalArrangement = Arrangement.spacedBy(AppDimens.Spacing12)
+        ) {
             if (loans.isNotEmpty()) {
                 item {
                     Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = LossColor.copy(0.1f))) {
@@ -151,7 +156,17 @@ fun LoanListScreen(onAddLoan: () -> Unit, onLoanDetail: (Long) -> Unit, onBack: 
                     }
                 }
             }
-            if (loanSummaries.isEmpty()) item { EmptyState("No loans added. Tap + to add one.") }
+            if (loanSummaries.isEmpty()) {
+                item {
+                    EmptyState(
+                        title = "No loans yet",
+                        message = "Add your first loan to track outstanding balance, EMI progress, and amortisation.",
+                        icon = Icons.Default.AccountBalance,
+                        actionLabel = "Add loan",
+                        onAction = onAddLoan
+                    )
+                }
+            }
             items(loanSummaries) { summary ->
                 LoanCard(summary, onClick = { onLoanDetail(summary.loan.id) }, onDelete = { vm.deleteLoan(summary.loan.id) })
             }

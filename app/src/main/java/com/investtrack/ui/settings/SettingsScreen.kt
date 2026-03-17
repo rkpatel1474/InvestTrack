@@ -21,6 +21,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.investtrack.data.preferences.LockType
 import com.investtrack.data.preferences.PreferencesManager
+import com.investtrack.ui.common.AppDimens
 import com.investtrack.ui.common.TopBarWithBack
 import com.investtrack.ui.theme.AppTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -75,7 +76,7 @@ fun SettingsScreen(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(AppDimens.ScreenPadding),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // ─── Appearance ──────────────────────────────────────────────────

@@ -32,6 +32,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.investtrack.data.database.entities.*
 import com.investtrack.data.repository.*
+import com.investtrack.ui.common.AppDimens
+import com.investtrack.ui.common.EmptyState
+import com.investtrack.ui.common.SkeletonBlock
 import com.investtrack.ui.common.SectionHeader
 import com.investtrack.ui.theme.GainColor
 import com.investtrack.ui.theme.LossColor
@@ -49,7 +52,8 @@ data class DashboardUiState(
     val recentTransactions: List<RecentTxn> = emptyList(),
     val totalLoanOutstanding: Double = 0.0,
     val totalMonthlyEMI: Double = 0.0,
-    val memberBreakdown: List<MemberPortfolioRow> = emptyList()
+    val memberBreakdown: List<MemberPortfolioRow> = emptyList(),
+    val errorMessage: String? = null
 )
 
 data class RecentTxn(
@@ -90,7 +94,7 @@ class DashboardViewModel @Inject constructor(
 
     fun loadDashboard() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 val summary     = portfolioRepository.getPortfolioSummary()
                 val recentTxns  = buildRecentTransactions()
@@ -107,7 +111,7 @@ class DashboardViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false) }
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Couldn’t load dashboard. Pull to refresh." ) }
             }
         }
     }
@@ -172,7 +176,12 @@ fun DashboardScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 100.dp),
+        contentPadding = PaddingValues(
+            start = AppDimens.ScreenPaddingHorizontal,
+            end = AppDimens.ScreenPaddingHorizontal,
+            top = AppDimens.ScreenPaddingVertical,
+            bottom = AppDimens.ContentBottomInsetWithBottomBar
+        ),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // ── Header ──────────────────────────────────────────────────────────
@@ -197,8 +206,27 @@ fun DashboardScreen(
         }
 
         if (uiState.isLoading) {
-            item { Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(AppDimens.Spacing12)) {
+                    SkeletonBlock(Modifier.fillMaxWidth().height(160.dp), shape = RoundedCornerShape(24.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(AppDimens.Spacing10)) {
+                        SkeletonBlock(Modifier.weight(1f).height(64.dp), shape = RoundedCornerShape(14.dp))
+                        SkeletonBlock(Modifier.weight(1f).height(64.dp), shape = RoundedCornerShape(14.dp))
+                        SkeletonBlock(Modifier.weight(1f).height(64.dp), shape = RoundedCornerShape(14.dp))
+                    }
+                    SkeletonBlock(Modifier.fillMaxWidth().height(110.dp), shape = RoundedCornerShape(16.dp))
+                }
+            }
         } else {
+            uiState.errorMessage?.let { err ->
+                item {
+                    com.investtrack.ui.common.ErrorBanner(
+                        message = err,
+                        actionLabel = "Refresh",
+                        onAction = { viewModel.loadDashboard() }
+                    )
+                }
+            }
             // ── Hero Card ────────────────────────────────────────────────────
             val s = uiState.portfolioSummary
 if (s != null) {
@@ -273,6 +301,16 @@ if (s != null) {
                                 onNavigateToSecurity(recent.transaction.securityId)
                             }
                         }
+                    )
+                }
+            } else {
+                item {
+                    EmptyState(
+                        title = "No activity yet",
+                        message = "Add your first transaction to see portfolio insights here.",
+                        icon = Icons.Default.ReceiptLong,
+                        actionLabel = "Add transaction",
+                        onAction = onNavigateToAddTransaction
                     )
                 }
             }
@@ -451,7 +489,14 @@ fun LoanStat(label: String, value: String) {
 @Composable
 fun RecentTxnRow(recent: RecentTxn, onClick: () -> Unit) {
     val txn     = recent.transaction
-    val isDebit = txn.transactionType in listOf(TransactionType.BUY, TransactionType.SIP, TransactionType.INVEST, TransactionType.DEPOSIT, TransactionType.PREMIUM)
+    // Outflow from user's pocket (invest / buy / premium / deposit into instruments)
+    val isOutflow = txn.transactionType in listOf(
+        TransactionType.BUY,
+        TransactionType.SIP,
+        TransactionType.INVEST,
+        TransactionType.DEPOSIT,
+        TransactionType.PREMIUM
+    )
     val amount  = txn.amount ?: ((txn.units ?: 0.0) * (txn.price ?: 0.0))
     Row(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
@@ -461,10 +506,15 @@ fun RecentTxnRow(recent: RecentTxn, onClick: () -> Unit) {
     ) {
         Box(
             modifier = Modifier.size(36.dp).clip(CircleShape)
-                .background(if (isDebit) GainColor.copy(0.12f) else LossColor.copy(0.12f)),
+                .background(if (isOutflow) LossColor.copy(0.12f) else GainColor.copy(0.12f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.SwapHoriz, null, tint = if (isDebit) GainColor else LossColor, modifier = Modifier.size(18.dp))
+            Icon(
+                Icons.Default.SwapHoriz,
+                contentDescription = null,
+                tint = if (isOutflow) LossColor else GainColor,
+                modifier = Modifier.size(18.dp)
+            )
         }
         Spacer(Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
@@ -473,9 +523,9 @@ fun RecentTxnRow(recent: RecentTxn, onClick: () -> Unit) {
             Text(txn.transactionDate.toDisplayDate(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Text(
-            "${if (!isDebit) "+" else "-"}${FinancialUtils.formatCurrency(amount)}",
+            "${if (!isOutflow) "+" else "-"}${FinancialUtils.formatCurrency(amount)}",
             style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold,
-            color = if (!isDebit) GainColor else MaterialTheme.colorScheme.onSurface
+            color = if (!isOutflow) GainColor else LossColor
         )
     }
 }

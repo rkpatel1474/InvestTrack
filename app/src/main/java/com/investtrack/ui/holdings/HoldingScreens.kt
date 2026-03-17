@@ -29,9 +29,11 @@ import com.investtrack.data.repository.PortfolioRepository
 import com.investtrack.data.repository.PriceRepository
 import com.investtrack.data.repository.SecurityRepository
 import com.investtrack.data.repository.TransactionRepository
+import com.investtrack.ui.common.AppDimens
 import com.investtrack.ui.common.EmptyState
 import com.investtrack.ui.common.PillChip
 import com.investtrack.ui.common.SectionHeader
+import com.investtrack.ui.common.SkeletonBlock
 import com.investtrack.ui.common.TopBarWithBack
 import com.investtrack.ui.dashboard.assetClassColor
 import com.investtrack.ui.theme.GainColor
@@ -106,10 +108,26 @@ fun HoldingsScreen(
         }
     ) { padding ->
         if (isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            LazyColumn(
+                contentPadding = PaddingValues(AppDimens.ScreenPadding),
+                modifier = Modifier.fillMaxSize().padding(padding),
+                verticalArrangement = Arrangement.spacedBy(AppDimens.Spacing10)
+            ) {
+                item { SkeletonBlock(Modifier.fillMaxWidth().height(120.dp), shape = RoundedCornerShape(AppDimens.CardRadiusLarge)) }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(AppDimens.Spacing8)) {
+                        SkeletonBlock(Modifier.width(54.dp).height(34.dp), shape = RoundedCornerShape(12.dp))
+                        SkeletonBlock(Modifier.width(86.dp).height(34.dp), shape = RoundedCornerShape(12.dp))
+                        SkeletonBlock(Modifier.width(86.dp).height(34.dp), shape = RoundedCornerShape(12.dp))
+                    }
+                }
+                items(6) {
+                    SkeletonBlock(Modifier.fillMaxWidth().height(150.dp), shape = RoundedCornerShape(AppDimens.CardRadius))
+                }
+            }
         } else {
             LazyColumn(
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(AppDimens.ScreenPadding),
                 modifier = Modifier.fillMaxSize().padding(padding),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -150,7 +168,13 @@ fun HoldingsScreen(
                     }
                 }
                 if (holdings.isEmpty()) {
-                    item { EmptyState("No holdings found. Add transactions to see your portfolio.") }
+                    item {
+                        EmptyState(
+                            title = "No holdings yet",
+                            message = "Add transactions to start building your portfolio view.",
+                            icon = Icons.Default.PieChart
+                        )
+                    }
                 }
                 items(holdings, key = { it.securityId }) { holding ->
                     HoldingCard(

@@ -19,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
@@ -230,9 +232,23 @@ fun PillNavItem(item: NavItem, selected: Boolean, onClick: () -> Unit) {
             .clip(RoundedCornerShape(14.dp))
             .background(bg)
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .padding(horizontal = if (selected) 12.dp else 14.dp, vertical = 8.dp)
+            .semantics { contentDescription = item.label },
         contentAlignment = Alignment.Center
     ) {
-        Icon(item.icon, item.label, tint = tint, modifier = Modifier.size(22.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(item.icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+            AnimatedVisibility(visible = selected) {
+                Row {
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = item.label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = tint,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
     }
 }

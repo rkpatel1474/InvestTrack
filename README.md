@@ -107,6 +107,66 @@ Dynamic security creation with **type-specific fields**:
 
 ---
 
+## ✅ Build APK on GitHub (no Android Studio needed)
+
+If you don’t have Android SDK/Android Studio locally, you can build the APK using GitHub Actions.
+
+### How to download the APK
+1. Push to `main` or `develop` (or open a Pull Request to `main`)
+2. In GitHub → **Actions** → open the latest run named **Android CI/CD**
+3. Scroll to **Artifacts** → download `investtrack-debug-<run_number>`
+4. Inside the downloaded zip, the APK is in `app/build/outputs/apk/debug/`
+
+### Notes
+- GitHub Actions installs **JDK 17** + **Android SDK (API 34)** automatically.
+- This produces a **debug APK**.
+
+---
+
+## 🔐 Build a Signed Release APK on GitHub
+
+This creates a **signed Release APK** (better for sharing/installing than debug).
+
+### 1) Create a keystore (one-time)
+On your Windows PC, install any Java (JDK 17 recommended). Then run:
+
+```bash
+keytool -genkeypair -v -keystore investtrack-release.jks -alias investtrack -keyalg RSA -keysize 2048 -validity 10000
+```
+
+It will ask for:
+- keystore password
+- key password
+- your name/organization (can be anything)
+
+Keep this `.jks` file safe. **If you lose it, you can’t update the app with the same signature.**
+
+### 2) Add GitHub Secrets (one-time)
+GitHub repo → **Settings → Secrets and variables → Actions → New repository secret**
+
+Create these secrets:
+- **`ANDROID_KEYSTORE_BASE64`**: base64 of the `investtrack-release.jks` file
+- **`ANDROID_KEYSTORE_PASSWORD`**
+- **`ANDROID_KEY_ALIAS`** (example: `investtrack`)
+- **`ANDROID_KEY_PASSWORD`**
+
+To get base64 on Windows PowerShell:
+
+```powershell
+$bytes = [System.IO.File]::ReadAllBytes("investtrack-release.jks")
+[Convert]::ToBase64String($bytes) | Set-Clipboard
+```
+
+Paste (from clipboard) into the `ANDROID_KEYSTORE_BASE64` secret.
+
+### 3) Build the signed APK
+GitHub → **Actions** → workflow **Signed Release APK** → **Run workflow**
+
+Download artifact `investtrack-release-<run_number>` → APK will be in:
+`app/build/outputs/apk/release/`
+
+---
+
 ## 🗃️ Database Schema
 
 ```

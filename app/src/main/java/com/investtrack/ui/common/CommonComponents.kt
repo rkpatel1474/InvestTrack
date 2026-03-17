@@ -1,5 +1,11 @@
 package com.investtrack.ui.common
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -340,4 +348,139 @@ fun IconBadge(icon: ImageVector, color: Color, size: Dp = 42.dp) {
     ) {
         Icon(icon, null, tint = color, modifier = Modifier.size(size * 0.5f))
     }
+}
+
+// ─── Layout / Spacing System ──────────────────────────────────────────────────
+object AppDimens {
+    val ScreenPadding = 16.dp
+    val ScreenPaddingHorizontal = 16.dp
+    val ScreenPaddingVertical = 16.dp
+    val ContentBottomInsetWithBottomBar = 100.dp
+
+    val CardRadius = 16.dp
+    val CardRadiusLarge = 20.dp
+    val FieldRadius = 12.dp
+    val ChipRadius = 50.dp
+
+    val Spacing2 = 2.dp
+    val Spacing4 = 4.dp
+    val Spacing6 = 6.dp
+    val Spacing8 = 8.dp
+    val Spacing10 = 10.dp
+    val Spacing12 = 12.dp
+    val Spacing14 = 14.dp
+    val Spacing16 = 16.dp
+    val Spacing20 = 20.dp
+    val Spacing24 = 24.dp
+    val Spacing32 = 32.dp
+}
+
+@Composable
+fun ScreenSurface(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground
+    ) {
+        content()
+    }
+}
+
+// ─── Feedback Components (Error / Empty / Loading) ────────────────────────────
+@Composable
+fun ErrorBanner(
+    message: String,
+    modifier: Modifier = Modifier,
+    actionLabel: String = "",
+    onAction: () -> Unit = {}
+) {
+    if (message.isBlank()) return
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(AppDimens.CardRadius),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(AppDimens.Spacing12),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AppDimens.Spacing10)
+        ) {
+            Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.weight(1f),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (actionLabel.isNotBlank()) {
+                TextButton(onClick = onAction) { Text(actionLabel) }
+            }
+        }
+    }
+}
+
+@Composable
+fun EmptyState(
+    title: String,
+    message: String,
+    icon: ImageVector = Icons.Default.Inbox,
+    actionLabel: String = "",
+    onAction: () -> Unit = {}
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(AppDimens.Spacing32),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(AppDimens.Spacing12)
+    ) {
+        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.4f), modifier = Modifier.size(56.dp))
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        Text(
+            message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        if (actionLabel.isNotBlank()) {
+            Button(onClick = onAction, shape = RoundedCornerShape(AppDimens.FieldRadius)) { Text(actionLabel) }
+        }
+    }
+}
+
+// Backwards-compatible overloads to avoid touching every callsite at once
+@Composable
+fun EmptyState(message: String, icon: ImageVector = Icons.Default.Inbox) =
+    EmptyState(title = "Nothing here yet", message = message, icon = icon)
+
+@Composable
+fun SkeletonBlock(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(AppDimens.CardRadius)
+) {
+    val transition = rememberInfiniteTransition(label = "skeleton")
+    val x by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1100, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "x"
+    )
+    val base = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+    val highlight = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+    val brush = Brush.linearGradient(
+        colors = listOf(base, highlight, base),
+        start = androidx.compose.ui.geometry.Offset(x * 600f, 0f),
+        end = androidx.compose.ui.geometry.Offset(x * 600f + 300f, 0f)
+    )
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(brush)
+    )
 }

@@ -23,6 +23,7 @@ import com.investtrack.data.database.entities.FamilyMember
 import com.investtrack.data.database.entities.Nominee
 import com.investtrack.data.database.entities.Relationship
 import com.investtrack.data.repository.FamilyRepository
+import com.investtrack.ui.common.AppDimens
 import com.investtrack.ui.common.DateField
 import com.investtrack.ui.common.DropdownField
 import com.investtrack.ui.common.EmptyState
@@ -74,11 +75,21 @@ fun FamilyListScreen(
         floatingActionButton = { FloatingActionButton(onClick = onAddMember) { Icon(Icons.Default.Add, null) } }
     ) { padding ->
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(AppDimens.ScreenPadding),
             modifier = Modifier.fillMaxSize().padding(padding),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            if (members.isEmpty()) item { EmptyState("No family members added yet.\nTap + to add one.") }
+            if (members.isEmpty()) {
+                item {
+                    EmptyState(
+                        title = "Add family members",
+                        message = "Track investments and loans across your entire family.",
+                        icon = Icons.Default.People,
+                        actionLabel = "Add member",
+                        onAction = onAddMember
+                    )
+                }
+            }
             items(members) { member ->
                 FamilyMemberCard(
                     member = member,
@@ -197,7 +208,7 @@ fun AddEditMemberScreen(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(AppDimens.ScreenPadding),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {

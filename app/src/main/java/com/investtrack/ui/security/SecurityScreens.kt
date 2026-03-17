@@ -56,7 +56,11 @@ fun SecurityListScreen(onAddSecurity: () -> Unit, onEditSecurity: (Long) -> Unit
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(AppDimens.ScreenPadding),
+            verticalArrangement = Arrangement.spacedBy(AppDimens.Spacing8)
+        ) {
             item {
                 OutlinedTextField(
                     value = search, onValueChange = { search = it },
@@ -67,7 +71,20 @@ fun SecurityListScreen(onAddSecurity: () -> Unit, onEditSecurity: (Long) -> Unit
                     colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = MaterialTheme.colorScheme.outline)
                 )
             }
-            if (filtered.isEmpty()) item { EmptyState("No securities found.", Icons.Default.Shield) }
+            if (filtered.isEmpty()) {
+                item {
+                    EmptyState(
+                        title = if (securities.isEmpty()) "Create your first security" else "No matching securities",
+                        message = if (securities.isEmpty())
+                            "Add Mutual Funds, Shares, Bonds, FDs, Insurance and more in the Security Master."
+                        else
+                            "Try a different name or code.",
+                        icon = Icons.Default.Shield,
+                        actionLabel = if (securities.isEmpty()) "Add security" else "",
+                        onAction = onAddSecurity
+                    )
+                }
+            }
             items(filtered, key = { it.id }) { s ->
                 SecurityCard(s, onEdit = { onEditSecurity(s.id) }, onDelete = { vm.delete(s.id) })
             }

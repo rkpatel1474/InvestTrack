@@ -76,7 +76,21 @@ fun PriceUpdateScreen(preSelectedSecurityId: Long? = null, onBack: () -> Unit, v
         topBar = { TopBarWithBack("Update Prices / NAV", onBack) },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(AppDimens.ScreenPadding),
+            verticalArrangement = Arrangement.spacedBy(AppDimens.Spacing16)
+        ) {
+            if (securities.isEmpty()) {
+                item {
+                    EmptyState(
+                        title = "No securities found",
+                        message = "Create securities first, then you can update their price/NAV history here.",
+                        icon = Icons.Default.Shield
+                    )
+                }
+                return@LazyColumn
+            }
             item {
                 Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -89,7 +103,14 @@ fun PriceUpdateScreen(preSelectedSecurityId: Long? = null, onBack: () -> Unit, v
                             modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
                         )
-                        if (showSearch && filteredSecurities.isNotEmpty()) {
+                        if (showSearch) {
+                            if (filteredSecurities.isEmpty() && searchQuery.trim().length >= 2) {
+                                EmptyState(
+                                    title = "No results",
+                                    message = "Try a different name or code.",
+                                    icon = Icons.Default.Search
+                                )
+                            } else if (filteredSecurities.isNotEmpty()) {
                             Card(shape = RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(8.dp)) {
                                 Column {
                                     filteredSecurities.take(6).forEach { sec ->
@@ -107,6 +128,7 @@ fun PriceUpdateScreen(preSelectedSecurityId: Long? = null, onBack: () -> Unit, v
                                         Divider()
                                     }
                                 }
+                            }
                             }
                         }
                         selectedSecurity?.let { sec ->

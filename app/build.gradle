@@ -10,6 +10,28 @@ android {
     namespace 'com.investtrack'
     compileSdk 34
 
+    // --- Release signing (configured via GitHub Secrets / CI env vars) ---
+    // CI should provide:
+    // ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+    def keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+    def keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+    def keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+    def keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+    def hasReleaseSigning = keystorePath && keystorePassword && keyAlias && keyPassword
+
+    if (hasReleaseSigning) {
+        signingConfigs {
+            release {
+                storeFile file(keystorePath)
+                storePassword keystorePassword
+                keyAlias keyAlias
+                keyPassword keyPassword
+                enableV1Signing true
+                enableV2Signing true
+            }
+        }
+    }
+
     defaultConfig {
         applicationId "com.investtrack"
         minSdk 26
@@ -24,6 +46,9 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     compileOptions {

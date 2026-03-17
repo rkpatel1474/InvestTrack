@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.investtrack.ui.common.AppTopBar
+import com.investtrack.ui.common.AppDimens
 import com.investtrack.ui.settings.SettingsSectionHeader
 
 @Composable
@@ -31,7 +32,7 @@ fun MoreScreen(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(AppDimens.ScreenPadding),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item { SettingsSectionHeader("Portfolio Management") }
