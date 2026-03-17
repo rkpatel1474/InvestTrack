@@ -15,7 +15,17 @@ data class FetchedPrice(
     val source: String
 )
 
+data class AmfiSchemeSuggestion(
+    val schemeCode: String,
+    val schemeName: String,
+    val isinGrowth: String = "",
+    val isinDividend: String = ""
+)
+
 object PriceAutoFetchers {
+
+    @Volatile private var amfiCatalogCache: List<AmfiSchemeSuggestion>? = null
+    @Volatile private var amfiCatalogFetchedAtMs: Long = 0L
 
     /**
      * Fetch latest NAV for an AMFI scheme code from AMFI NAVAll endpoint.
@@ -47,6 +57,70 @@ object PriceAutoFetchers {
             }
         }
         throw IllegalStateException("Failed to read AMFI NAV")
+    }
+
+    /**
+     * Download and parse AMFI NAVAll catalog into suggestions (scheme code, name, ISINs).
+     * Cached in memory for a few hours to avoid repeated large downloads.
+     */
+    suspend fun getAmfiCatalog(forceRefresh: Boolean = false): List<AmfiSchemeSuggestion> = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        val cached = amfiCatalogCache
+        val cacheAgeMs = now - amfiCatalogFetchedAtMs
+        if (!forceRefresh && cached != null && cacheAgeMs < 6 * 60 * 60 * 1000L) {
+            return@withContext cached
+        }
+
+        val url = URL("https://www.amfiindia.com/spages/NAVAll.txt")
+        val conn = (url.openConnection() as HttpURLConnection).apply {
+            connectTimeout = 20_000
+            readTimeout = 20_000
+            requestMethod = "GET"
+            setRequestProperty("User-Agent", "InvestTrack/1.0")
+        }
+
+        val list = conn.inputStream.use { input ->
+            BufferedReader(InputStreamReader(input)).useLines { lines ->
+                lines
+                    .filter { it.isNotBlank() && it.first().isDigit() && it.contains(';') }
+                    .mapNotNull { line ->
+                        val parts = line.split(';')
+                        if (parts.size < 5) return@mapNotNull null
+                        val code = parts[0].trim()
+                        val isinDivOrGrowth = parts.getOrNull(1)?.trim().orEmpty()
+                        val isinReinv = parts.getOrNull(2)?.trim().orEmpty()
+                        val name = parts.getOrNull(3)?.trim().orEmpty()
+                        if (code.isEmpty() || name.isEmpty()) return@mapNotNull null
+                        AmfiSchemeSuggestion(
+                            schemeCode = code,
+                            schemeName = name,
+                            // AMFI fields are not consistently "growth vs dividend" across the file; store both.
+                            isinGrowth = isinDivOrGrowth,
+                            isinDividend = isinReinv
+                        )
+                    }
+                    .toList()
+            }
+        }
+
+        amfiCatalogCache = list
+        amfiCatalogFetchedAtMs = now
+        list
+    }
+
+    suspend fun searchAmfiSchemes(query: String, limit: Int = 12): List<AmfiSchemeSuggestion> {
+        val q = query.trim()
+        if (q.length < 2) return emptyList()
+        val catalog = getAmfiCatalog()
+        return catalog.asSequence()
+            .filter {
+                it.schemeName.contains(q, ignoreCase = true) ||
+                    it.schemeCode.contains(q, ignoreCase = true) ||
+                    it.isinGrowth.contains(q, ignoreCase = true) ||
+                    it.isinDividend.contains(q, ignoreCase = true)
+            }
+            .take(limit)
+            .toList()
     }
 
     /**

@@ -73,6 +73,42 @@ class PriceUpdateViewModel @Inject constructor(
             }
         }
     }
+
+    fun autoFetchAll(securities: List<SecurityMaster>, onProgress: (done: Int, total: Int) -> Unit, onDone: (Result<Int>) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val eligible = securities.filter { s ->
+                    (s.securityType == SecurityType.MUTUAL_FUND && s.amfiSchemeCode.isNotBlank()) ||
+                        (s.securityType == SecurityType.SHARES && s.yahooSymbol.isNotBlank())
+                }
+                val total = eligible.size
+                var done = 0
+                var savedCount = 0
+                onProgress(done, total)
+                for (sec in eligible) {
+                    val fetched = when (sec.securityType) {
+                        SecurityType.MUTUAL_FUND -> PriceAutoFetchers.fetchAmfiNav(sec.amfiSchemeCode)
+                        SecurityType.SHARES -> PriceAutoFetchers.fetchYahooQuote(sec.yahooSymbol)
+                        else -> continue
+                    }
+                    val priceDate = fetched.epochMillis ?: System.currentTimeMillis()
+                    val ph = PriceHistory(
+                        securityId = sec.id,
+                        priceDate = priceDate,
+                        price = fetched.price,
+                        source = fetched.source
+                    )
+                    priceRepo.insertPrice(ph)
+                    savedCount++
+                    done++
+                    onProgress(done, total)
+                }
+                onDone(Result.success(savedCount))
+            } catch (e: Exception) {
+                onDone(Result.failure(e))
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -87,6 +123,9 @@ fun PriceUpdateScreen(preSelectedSecurityId: Long? = null, onBack: () -> Unit, v
     var showSuccess by remember { mutableStateOf(false) }
     var isAutoFetching by remember { mutableStateOf(false) }
     var autoFetchError by remember { mutableStateOf<String?>(null) }
+    var isAutoFetchingAll by remember { mutableStateOf(false) }
+    var autoAllProgress by remember { mutableStateOf<Pair<Int, Int>?>(null) } // done/total
+    var autoAllMessage by remember { mutableStateOf<String?>(null) }
 
     val priceHistory by remember(selectedSecurity) {
         if (selectedSecurity != null) vm.getPriceHistory(selectedSecurity!!.id)
@@ -120,6 +159,69 @@ fun PriceUpdateScreen(preSelectedSecurityId: Long? = null, onBack: () -> Unit, v
                     )
                 }
                 return@LazyColumn
+            }
+
+            // Global auto-update all configured securities
+            item {
+                val eligibleCount = securities.count { s ->
+                    (s.securityType == SecurityType.MUTUAL_FUND && s.amfiSchemeCode.isNotBlank()) ||
+                        (s.securityType == SecurityType.SHARES && s.yahooSymbol.isNotBlank())
+                }
+                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Auto Update", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            "Configured securities: $eligibleCount",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        OutlinedButton(
+                            onClick = {
+                                isAutoFetchingAll = true
+                                autoAllMessage = null
+                                autoFetchError = null
+                                vm.autoFetchAll(
+                                    securities = securities,
+                                    onProgress = { done, total -> autoAllProgress = done to total },
+                                    onDone = { result ->
+                                        isAutoFetchingAll = false
+                                        result.fold(
+                                            onSuccess = { saved ->
+                                                autoAllMessage = "Updated $saved securities."
+                                            },
+                                            onFailure = { err ->
+                                                autoFetchError = err.message ?: "Auto update all failed"
+                                            }
+                                        )
+                                    }
+                                )
+                            },
+                            enabled = !isAutoFetchingAll && eligibleCount > 0,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            if (isAutoFetchingAll) {
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                                Spacer(Modifier.width(10.dp))
+                                val (d, t) = autoAllProgress ?: (0 to 0)
+                                Text(if (t > 0) "Updating… ($d/$t)" else "Updating…")
+                            } else {
+                                Icon(Icons.Default.Sync, null)
+                                Spacer(Modifier.width(8.dp))
+                                Text("Auto Update All")
+                            }
+                        }
+                        autoAllMessage?.let { msg ->
+                            Surface(color = MaterialTheme.colorScheme.primary.copy(0.1f), shape = RoundedCornerShape(8.dp)) {
+                                Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(msg, color = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
+                    }
+                }
             }
             item {
                 Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {

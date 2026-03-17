@@ -19,6 +19,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.investtrack.data.database.entities.*
 import com.investtrack.data.repository.SecurityRepository
+import com.investtrack.data.repository.PriceAutoFetchers
+import com.investtrack.data.repository.AmfiSchemeSuggestion
 import com.investtrack.ui.common.*
 import com.investtrack.ui.theme.LossColor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -120,6 +122,7 @@ fun SecurityCard(sec: SecurityMaster, onEdit: () -> Unit, onDelete: () -> Unit) 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: SecurityViewModel = hiltViewModel()) {
+    val scope = rememberCoroutineScope()
     var name by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
     var type by remember { mutableStateOf(SecurityType.MUTUAL_FUND) }
@@ -154,6 +157,12 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
     var goldForm by remember { mutableStateOf("") }
     var cryptoSymbol by remember { mutableStateOf("") }
 
+    // AMFI search UI state (Mutual Funds)
+    var amfiQuery by remember { mutableStateOf("") }
+    var amfiResults by remember { mutableStateOf(listOf<AmfiSchemeSuggestion>()) }
+    var amfiSearching by remember { mutableStateOf(false) }
+    var showAmfiPicker by remember { mutableStateOf(false) }
+
     LaunchedEffect(editSecurityId) {
         editSecurityId?.let { id ->
             vm.getById(id) { s ->
@@ -180,6 +189,22 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
                 }
             }
         }
+    }
+
+    // Debounced AMFI search
+    LaunchedEffect(amfiQuery, type) {
+        if (type != SecurityType.MUTUAL_FUND) return@LaunchedEffect
+        val q = amfiQuery.trim()
+        if (!showAmfiPicker) return@LaunchedEffect
+        if (q.length < 2) {
+            amfiResults = emptyList()
+            amfiSearching = false
+            return@LaunchedEffect
+        }
+        amfiSearching = true
+        kotlinx.coroutines.delay(250)
+        amfiResults = PriceAutoFetchers.searchAmfiSchemes(q, limit = 12)
+        amfiSearching = false
     }
 
     Scaffold(
@@ -230,6 +255,56 @@ fun AddEditSecurityScreen(editSecurityId: Long? = null, onBack: () -> Unit, vm: 
             if (type == SecurityType.MUTUAL_FUND) {
                 item {
                     FormCard("Mutual Fund Details") {
+                        OutlinedTextField(
+                            value = amfiQuery,
+                            onValueChange = {
+                                amfiQuery = it
+                                showAmfiPicker = true
+                            },
+                            label = { Text("Search AMFI Scheme") },
+                            trailingIcon = { Icon(Icons.Default.Search, null) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
+                        )
+
+                        if (showAmfiPicker) {
+                            when {
+                                amfiSearching -> SkeletonBlock(
+                                    modifier = Modifier.fillMaxWidth().height(96.dp),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                amfiResults.isNotEmpty() -> Card(
+                                    shape = RoundedCornerShape(12.dp),
+                                    elevation = CardDefaults.cardElevation(8.dp)
+                                ) {
+                                    Column {
+                                        amfiResults.forEach { r ->
+                                            ListItem(
+                                                headlineContent = { Text(r.schemeName, maxLines = 1) },
+                                                supportingContent = { Text("Code: ${r.schemeCode}  •  ISIN: ${r.isinGrowth.ifBlank { "—" }}") },
+                                                modifier = Modifier.clickable {
+                                                    // Auto-fill from AMFI selection
+                                                    amfiSchemeCode = r.schemeCode
+                                                    name = r.schemeName
+                                                    // Prefer growth ISIN if present
+                                                    if (r.isinGrowth.isNotBlank()) isin = r.isinGrowth
+                                                    amfiQuery = r.schemeName
+                                                    showAmfiPicker = false
+                                                }
+                                            )
+                                            Divider()
+                                        }
+                                    }
+                                }
+                                amfiQuery.trim().length >= 2 -> EmptyState(
+                                    title = "No AMFI matches",
+                                    message = "Try a different scheme name or scheme code.",
+                                    icon = Icons.Default.Search
+                                )
+                            }
+                        }
+
                         InputField("AMFI Scheme Code", amfiSchemeCode, { amfiSchemeCode = it.trim() }, keyboardType = KeyboardType.Number)
                         InputField("AMC Name", amc, { amc = it })
                         DropdownField("Scheme Type", MFSchemeType.values().toList(), schemeType, { schemeType = it }, { it.name.replace("_"," ") })
