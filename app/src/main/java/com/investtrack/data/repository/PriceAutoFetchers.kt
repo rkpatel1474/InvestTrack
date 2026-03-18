@@ -138,7 +138,7 @@ object PriceAutoFetchers {
         }
 
         fun request(host: String): String {
-            val url = URL("https://$host/v7/finance/quote?symbols=$symbol")
+            val url = URL("https://$host/v8/finance/quote?symbols=$symbol")
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 connectTimeout = 20_000
                 readTimeout = 20_000
