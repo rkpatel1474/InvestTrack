@@ -1,6 +1,5 @@
 package com.investtrack.data.repository
 
-import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
@@ -8,7 +7,7 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.Locale
+import org.json.JSONObject
 
 data class FetchedPrice(
     val price: Double,
@@ -45,7 +44,6 @@ object PriceAutoFetchers {
         }
         val fetched = conn.inputStream.use { input ->
             BufferedReader(InputStreamReader(input)).useLines { lines ->
-                // Find the first matching scheme code line (the file usually has only one entry per scheme per date)
                 val match = lines.firstOrNull { it.startsWith("$code;", ignoreCase = false) }
                     ?: throw IllegalStateException("AMFI scheme code not found in NAVAll.txt")
 
@@ -95,7 +93,6 @@ object PriceAutoFetchers {
                         AmfiSchemeSuggestion(
                             schemeCode = code,
                             schemeName = name,
-                            // AMFI fields are not consistently "growth vs dividend" across the file; store both.
                             isinGrowth = isinDivOrGrowth,
                             isinDividend = isinReinv
                         )
@@ -125,11 +122,20 @@ object PriceAutoFetchers {
     }
 
     /**
-     * Fetch latest price from Yahoo quote API.
-     * Symbol examples: TCS.NS, RELIANCE.NS, INFY.NS.
+     * Fetch latest price from Yahoo Finance chart API.
+     * Uses /v8/finance/chart/ endpoint (the /v8/finance/quote endpoint is blocked by Yahoo).
+     * Symbol examples: TCS.NS (NSE), RELIANCE.BO (BSE), AAPL (US).
+     *
+     * Response parsed from: chart.result[0].meta.regularMarketPrice
+     * This field is always the latest traded price, updated in real-time by Yahoo,
+     * regardless of range or interval params.
+     *
+     * Fallback chain:
+     *   1. regularMarketPrice  — live/last traded price
+     *   2. previousClose       — last session close if market not yet open
      */
     suspend fun fetchYahooQuote(yahooSymbol: String): FetchedPrice = withContext(Dispatchers.IO) {
-        val symbol = yahooSymbol.trim().uppercase(Locale.US)
+        val symbol = yahooSymbol.trim().uppercase()
         require(symbol.isNotEmpty()) { "Yahoo symbol is empty" }
 
         fun readStream(stream: InputStream?): String {
@@ -137,8 +143,9 @@ object PriceAutoFetchers {
             return stream.use { it.readBytes().toString(Charsets.UTF_8) }
         }
 
+        // Uses chart endpoint — only working Yahoo endpoint as of 2025
         fun request(host: String): String {
-            val url = URL("https://$host/v8/finance/quote?symbols=$symbol")
+            val url = URL("https://$host/v8/finance/chart/$symbol?interval=1d&range=5d")
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 connectTimeout = 20_000
                 readTimeout = 20_000
@@ -157,50 +164,41 @@ object PriceAutoFetchers {
             if (code !in 200..299) {
                 val hint = when (code) {
                     401, 403 -> "Yahoo blocked the request (HTTP $code)."
-                    429 -> "Yahoo rate-limited the request (HTTP 429). Try again later."
-                    else -> "Yahoo request failed (HTTP $code)."
+                    429      -> "Yahoo rate-limited the request (HTTP 429). Try again later."
+                    else     -> "Yahoo request failed (HTTP $code)."
                 }
-                throw IllegalStateException("$hint URL: ${url}. ${body.take(250)}")
+                throw IllegalStateException("$hint Body: ${body.take(250)}")
             }
             return body
         }
 
-        // Yahoo sometimes blocks query1; try query1 then query2.
+        // Try query1 first, fall back to query2 if blocked
         val json = try {
             request("query1.finance.yahoo.com")
         } catch (_: Exception) {
             request("query2.finance.yahoo.com")
         }
 
-        val root = Gson().fromJson(json, YahooQuoteRoot::class.java)
-        val quote = root?.quoteResponse?.result?.firstOrNull()
-            ?: throw IllegalStateException("No Yahoo quote found for $symbol")
+        // Parse: chart → result[0] → meta → regularMarketPrice
+        val meta = JSONObject(json)
+            .getJSONObject("chart")
+            .getJSONArray("result")
+            .getJSONObject(0)
+            .getJSONObject("meta")
 
-        val price = quote.regularMarketPrice
-            ?: quote.postMarketPrice
-            ?: quote.preMarketPrice
-            ?: throw IllegalStateException("Yahoo quote returned no price for $symbol")
+        val price = when {
+            meta.has("regularMarketPrice") && !meta.isNull("regularMarketPrice")
+                -> meta.getDouble("regularMarketPrice")
+            meta.has("previousClose") && !meta.isNull("previousClose")
+                -> meta.getDouble("previousClose")
+            else -> throw IllegalStateException("Yahoo chart returned no price for $symbol")
+        }
 
-        val epochSeconds = quote.regularMarketTime
-        val epochMillis = epochSeconds?.times(1000L)
+        // regularMarketTime is Unix seconds — convert to millis
+        val epochMillis = if (meta.has("regularMarketTime") && !meta.isNull("regularMarketTime"))
+            meta.getLong("regularMarketTime") * 1000L
+        else null
 
         FetchedPrice(price = price, epochMillis = epochMillis, source = "Yahoo")
     }
-
-    // --- Minimal JSON models for Yahoo quote ---
-    private data class YahooQuoteRoot(
-        val quoteResponse: YahooQuoteResponse?
-    )
-
-    private data class YahooQuoteResponse(
-        val result: List<YahooQuote>?
-    )
-
-    private data class YahooQuote(
-        val regularMarketPrice: Double?,
-        val regularMarketTime: Long?,
-        val preMarketPrice: Double?,
-        val postMarketPrice: Double?
-    )
 }
-
